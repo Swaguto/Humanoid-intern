@@ -17,7 +17,7 @@ Numbers land here as stages complete. Empty sections mean "not run yet", not
 
 ## Policy evaluation (LIBERO suites)
 
-| setting | libero_10 | libero_90 | notes |
+| setting | libero_spatial (target) | libero_10 (baseline) | notes |
 |---|---|---|---|
 | baseline: official demos only | | | |
 | + video-derived demos | | | |
