@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+
+# data & artifacts
+data/
+outputs/
+*.npz
+*.hdf5
+*.h5
+*.mp4
+*.pkl
+*.obj
+*.ply
+
+# MANO (licensed separately, never committed)
+mano_v1_2/
+**/MANO_*.pkl

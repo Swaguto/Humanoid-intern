@@ -1,0 +1,9 @@
+numpy>=1.24
+scipy>=1.10
+pyyaml>=6.0
+h5py>=3.8
+
+# External, installed separately (not pinned here):
+#   libero:  pip install git+https://github.com/Lifelong-Robot-Learning/LIBERO.git
+#   policies: see README § Fine-tune (openpi / OpenVLA-OFT)
+#   V2D:     GPU host with docker + NVIDIA runtime, see V2D repo

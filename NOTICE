@@ -1,0 +1,13 @@
+This repository contains code adapted from the NVIDIA V2D Challenge repository
+(https://github.com/Swaguto/NVIDIA-V2D-Challenge), licensed under the
+Apache License, Version 2.0.
+
+  v2d_to_libero/mano.py  — adapted from
+    reconstruction/modules/v2d_hand_alignment/lib/recover_mano_params.py
+    (MANO forward kinematics + chumpy-free model loader)
+
+Apache-2.0 license text: https://www.apache.org/licenses/LICENSE-2.0
+
+MANO hand models (mano_v1_2) are NOT included in this repository; they are
+distributed separately by MPI under their own license and must be obtained
+from the MANO project page.

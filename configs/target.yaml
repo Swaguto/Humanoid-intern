@@ -1,0 +1,55 @@
+# Per-experiment configuration: one YAML per phone-video clip.
+# Values marked TUNE are set from scripts/replay_libero.py diagnostics
+# (printed by v2d_to_libero.extract --summary).
+
+# --- inputs -----------------------------------------------------------------
+v2d_result_dir: data/outputs/clip01/result    # V2D output .../result dir
+mano_model_dir: ~/Downloads/mano_v1_2/models  # MANO_RIGHT.pkl / MANO_LEFT.pkl
+hand: right                                   # left | right
+output_dir: data/demos
+
+# --- scale anchoring ---------------------------------------------------------
+scale:
+  method: grasp_aperture        # grasp_aperture | fixed
+  known_object_width_m: 0.080   # TUNE: measure your object (e.g. mug 8 cm)
+  # hold_frame_range: [120, 160]  # TUNE: uncomment to pin the hold window
+  # fixed_scale: 1.0
+
+# --- V2D world → Libero world -------------------------------------------------
+# After GeoCalib alignment the V2D world is z-up, x=right, y=camera-forward.
+# origin: the V2D-world point that should become the Libero table origin.
+# TUNE by printing wrist pos range (extract --summary) vs your Libero scene.
+workspace:
+  origin: [0.0, 0.0, 0.0]
+  yaw_deg: 0.0
+  axis_signs: [1.0, 1.0, 1.0]   # flip a sign if the traj goes through the table
+
+# --- wrist → tool offset -------------------------------------------------------
+# TUNE: align rendered gripper to the wrist overlay in the V2D aligned render.
+eef:
+  rotation_offset_deg: [0.0, 0.0, 0.0]
+  position_offset: [0.0, 0.0, 0.0]   # metres, wrist frame (post-scale)
+
+# --- gripper ------------------------------------------------------------------
+gripper:
+  aperture_open_m: auto          # auto = p95 of valid aperture
+  aperture_closed_m: auto        # auto = p20 of valid aperture
+  hysteresis: 0.0
+
+# --- Libero environment --------------------------------------------------------
+libero:
+  suite: libero_10               # libero_10 | libero_90 | ...
+  task: pick_up_the_black_bowl_between_the_plate_and_the_racket  # TUNE
+  # bddl_file_path: /path/to/task.bddl   # set to override suite+task lookup
+  camera: agentview
+  camera_size: 256
+  control_freq: 20
+  seed: 0
+  gripper_convention: neg1_open  # VERIFY with scripts/check_conventions.py
+
+# --- replay controller ----------------------------------------------------------
+replay:
+  pos_gain: 1.0                  # TUNE: >1 faster pursuit, <1 smoother
+  rot_gain: 1.0
+  pos_clip: 0.05                 # max |delta| per step (m) ≈ 1 m/s at 20 Hz
+  rot_clip: 0.3                  # max |delta| per step (rad)
