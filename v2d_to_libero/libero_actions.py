@@ -30,16 +30,23 @@ def make_action(
     rot_gain: float,
     pos_clip: float,
     rot_clip: float,
+    osc_translation_output_m: float = 0.05,
+    osc_rotation_output_rad: float = 0.5,
 ) -> np.ndarray:
     """One 7-dim Libero action driving current pose → target pose."""
-    dpos = pos_gain * (np.asarray(target_pos, float) - np.asarray(cur_pos, float))
-    dpos = np.clip(dpos, -pos_clip, pos_clip)
+    # OSC_POSE receives normalized [-1, 1] actions. Its default translation
+    # output range is [-0.05, 0.05] metres, not metres as an input action.
+    dpos_m = np.clip(pos_gain * (np.asarray(target_pos, float) - np.asarray(cur_pos, float)),
+                     -pos_clip, pos_clip)
+    if osc_translation_output_m <= 0 or osc_rotation_output_rad <= 0:
+        raise ValueError("OSC output ranges must be positive")
+    dpos = np.clip(dpos_m / osc_translation_output_m, -1.0, 1.0)
 
     R_cur = Rotation.from_quat(np.asarray(cur_quat_xyzw, float))
     R_tgt = Rotation.from_quat(np.asarray(target_quat_xyzw, float))
     R_err = R_tgt * R_cur.inv()
-    drot = rot_gain * R_err.as_rotvec()          # world-frame axis-angle delta
-    drot = np.clip(drot, -rot_clip, rot_clip)
+    drot_rad = np.clip(rot_gain * R_err.as_rotvec(), -rot_clip, rot_clip)
+    drot = np.clip(drot_rad / osc_rotation_output_rad, -1.0, 1.0)
 
     return np.concatenate([dpos, drot, [gripper_unit]]).astype(np.float64)
 
@@ -83,6 +90,8 @@ def build_env_action(
         rot_gain=float(rcfg.get("rot_gain", 1.0)),
         pos_clip=float(rcfg.get("pos_clip", 0.05)),
         rot_clip=float(rcfg.get("rot_clip", 0.3)),
+        osc_translation_output_m=float(rcfg.get("osc_translation_output_m", 0.05)),
+        osc_rotation_output_rad=float(rcfg.get("osc_rotation_output_rad", 0.5)),
     )
     action[-1] = gripper_to_env(
         gripper_unit, cfg.get("libero", {}).get("gripper_convention", "neg1_open")

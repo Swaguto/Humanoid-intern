@@ -3,26 +3,35 @@
 # (printed by v2d_to_libero.extract --summary).
 
 # --- inputs -----------------------------------------------------------------
-v2d_result_dir: data/outputs/clip01/result    # V2D output .../result dir
+v2d_result_dir: data/outputs/clip01/result_slam_gravity_aligned
 mano_model_dir: ~/Downloads/mano_v1_2/models  # MANO_RIGHT.pkl / MANO_LEFT.pkl
 hand: right                                   # left | right
+video_fps: 30                                 # actual FPS of the video passed to V2D
 output_dir: data/demos
 
 # --- scale anchoring ---------------------------------------------------------
 scale:
-  method: grasp_aperture        # grasp_aperture | fixed
-  known_object_width_m: 0.080   # TUNE: measure your object (e.g. mug 8 cm)
-  # hold_frame_range: [120, 160]  # TUNE: uncomment to pin the hold window
-  # fixed_scale: 1.0
+  method: fixed                 # V2D world-unit to metre scale, calibrate from scene
+  fixed_scale: 1.0
+  # grasp_aperture is experimental: MANO hand scale may differ from world scale.
+  # method: grasp_aperture
+  # known_object_width_m: 0.080
+  # hold_frame_range: [120, 160]
+
+# The tracked object at the start of the clip is mapped to this LIBERO object.
+# If the name differs in your installed LIBERO, replay prints available names.
+object:
+  libero_name: akita_black_bowl_1
+  # sim_position: [x, y, z]    # explicit override if body name is unavailable
 
 # --- V2D world → Libero world -------------------------------------------------
 # After GeoCalib alignment the V2D world is z-up, x=right, y=camera-forward.
-# origin: the V2D-world point that should become the Libero table origin.
-# TUNE by printing wrist pos range (extract --summary) vs your Libero scene.
+# Origin is computed from the tracked video's object and the LIBERO object.
+# Tune yaw and the wrist-to-tool offset against an overlay/rejected rollout.
 workspace:
   origin: [0.0, 0.0, 0.0]
   yaw_deg: 0.0
-  axis_signs: [1.0, 1.0, 1.0]   # flip a sign if the traj goes through the table
+  axis_signs: [1.0, 1.0, 1.0]   # product must be +1 to preserve rotations
 
 # --- wrist → tool offset -------------------------------------------------------
 # TUNE: align rendered gripper to the wrist overlay in the V2D aligned render.
@@ -51,5 +60,7 @@ libero:
 replay:
   pos_gain: 1.0                  # TUNE: >1 faster pursuit, <1 smoother
   rot_gain: 1.0
-  pos_clip: 0.05                 # max |delta| per step (m) ≈ 1 m/s at 20 Hz
-  rot_clip: 0.3                  # max |delta| per step (rad)
+  pos_clip: 0.05                 # controller target correction in metres
+  rot_clip: 0.3                  # controller target correction in radians
+  osc_translation_output_m: 0.05 # verify in installed robosuite OSC config
+  osc_rotation_output_rad: 0.5   # verify in installed robosuite OSC config

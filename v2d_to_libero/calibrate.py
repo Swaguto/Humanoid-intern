@@ -21,7 +21,7 @@ from .extract import HandTrack
 
 def resolve_scale(
     track: HandTrack,
-    method: str = "grasp_aperture",
+    method: str = "fixed",
     known_object_width_m: float | None = None,
     fixed_scale: float = 1.0,
     hold_frame_range: tuple[int, int] | None = None,
@@ -30,12 +30,13 @@ def resolve_scale(
 
     Methods:
       fixed           — trust the pipeline as-is (`fixed_scale`).
-      grasp_aperture  — the hand held a measured-width object during the clip;
-                        scale = width / median(aperture in hold window).
-                        Window defaults to the frames around the aperture
-                        minimum (the grasp moment).
+      grasp_aperture  — experimental width / median(aperture) in a manually
+                        selected holding window. MANO scale may not equal
+                        V2D world scale.
     """
     if method == "fixed":
+        if not np.isfinite(fixed_scale) or fixed_scale <= 0:
+            raise ValueError("fixed_scale must be finite and positive")
         return float(fixed_scale)
 
     if method != "grasp_aperture":
@@ -43,27 +44,18 @@ def resolve_scale(
 
     if known_object_width_m is None or known_object_width_m <= 0:
         raise ValueError("grasp_aperture scale needs scale.known_object_width_m")
+    if hold_frame_range is None:
+        raise ValueError("grasp_aperture requires scale.hold_frame_range")
 
     ap = track.aperture.copy()
     valid = track.valid & np.isfinite(ap)
     if valid.sum() < 10:
         raise RuntimeError("too few valid aperture samples for scaling")
 
-    if hold_frame_range is None:
-        # Grasp moment = global aperture minimum on valid frames; window =
-        # ±15% of the clip around it (the hand is holding, not moving toward).
-        idx = np.where(valid)[0]
-        i_min = idx[np.nanargmin(ap[idx])]
-        half = max(5, int(0.15 * len(track.valid)))
-        lo, hi = max(0, i_min - half), min(len(track.valid), i_min + half + 1)
-        hold = np.zeros_like(valid)
-        hold[lo:hi] = True
-        hold &= valid
-    else:
-        lo, hi = hold_frame_range
-        hold = np.zeros_like(valid)
-        hold[lo:hi] = True
-        hold &= valid
+    lo, hi = hold_frame_range
+    hold = np.zeros_like(valid)
+    hold[lo:hi] = True
+    hold &= valid
 
     if hold.sum() < 5:
         raise RuntimeError(f"hold window too small ({hold.sum()} valid frames)")
@@ -100,11 +92,7 @@ class WorkspaceMap:
         self.R = Rotation.from_euler("z", yaw_deg, degrees=True).as_matrix() @ np.diag(signs)
         det = np.linalg.det(self.R)
         if det < 0:
-            print(
-                "[calibrate] WARNING: axis_signs make the map a reflection "
-                "(det<0). Rotations will be mirrored — prefer fixing "
-                "workspace.axis_signs to a proper rotation."
-            )
+            raise ValueError("workspace axis_signs must preserve handedness (product must be +1)")
 
     # --- points -----------------------------------------------------------
     def pos(self, p_world: np.ndarray) -> np.ndarray:
@@ -145,3 +133,19 @@ def default_workspace(cfg: dict, scale: float) -> WorkspaceMap:
         axis_signs=np.asarray(ws.get("axis_signs", [1.0, 1.0, 1.0]), float),
         scale=scale,
     )
+
+
+def align_workspace_to_object(
+    workspace: WorkspaceMap,
+    video_object_pos: np.ndarray,
+    sim_object_pos: np.ndarray,
+) -> WorkspaceMap:
+    """Translate the workspace so a tracked video object meets its simulated start pose."""
+    video_object_pos = np.asarray(video_object_pos, float).reshape(3)
+    sim_object_pos = np.asarray(sim_object_pos, float).reshape(3)
+    if not np.isfinite(video_object_pos).all() or not np.isfinite(sim_object_pos).all():
+        raise ValueError("object anchor positions must be finite")
+    if workspace.scale <= 0:
+        raise ValueError("workspace scale must be positive")
+    workspace.origin = video_object_pos - workspace.R.T @ (sim_object_pos / workspace.scale)
+    return workspace

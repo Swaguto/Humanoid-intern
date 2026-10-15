@@ -32,7 +32,7 @@ timing) without a single real pixel entering the training set.
   the adapter (`extract.py`) is a pure consumer; nothing about our code depends
   on V2D internals.
 
-## 3. The scale problem, and why `grasp_aperture` is the right anchor
+## 3. The scale problem
 
 Monocular depth (ViPE/MoGe) is not guaranteed metric. Options we rejected:
 
@@ -42,12 +42,12 @@ Monocular depth (ViPE/MoGe) is not guaranteed metric. Options we rejected:
 | hand size from MANO betas | betas fitted in the same non-metric world — circular |
 | depth reading at object | monocular depth scale drifts frame to frame |
 
-**Chosen:** during the recording the hand *holds the measured object* — the
-aperture while holding ≈ object width in whatever units the pipeline produced.
-`scale = width_measured / median(aperture_in_hold_window)`. One measurement,
-robust to depth drift, and the hold window is easy to find (aperture minimum
-region). The sim replay is the backstop: a wrong scale shows up immediately as
-a missed grasp and the episode is filtered out.
+The default is an explicit world-unit-to-metre scale, initially 1.0. This must
+be calibrated against the scene. The optional `grasp_aperture` method uses a
+measured object width and a manually chosen holding window, but is experimental:
+MANO hand scale can differ from the reconstructed camera/world scale. It is not
+a reliable automatic world-scale calibration. Failed replays expose bad scale,
+but filtering alone cannot recover a valid trajectory.
 
 ## 4. Gripper signal from fingertip distance
 
@@ -60,11 +60,10 @@ through occlusion would invent motion).
 ## 5. Replay as physics-based filtering
 
 The retargeted trajectory is executed through Libero's OSC controller. Only
-rollouts where `env.check_success()` passes become training demos. This makes
-the pipeline self-correcting: bad scale, bad frame alignment, or
-non-physical hand motion simply fail to produce a demo instead of poisoning the
-dataset. Failed-rollout rate is reported (see `results.md`) — it's a direct
-measure of retarget quality.
+rollouts where `env.check_success()` passes become training demos. Failures are
+saved only with `--save-rejects` for inspection. A zero-success run means there
+is no video-derived training data; the filter cannot repair calibration or
+contact errors. Failed-rollout rate is reported in `results.md`.
 
 ## 6. Policy choice
 

@@ -68,7 +68,10 @@ def main() -> None:
     cfg_path = sys.argv[1] if len(sys.argv) > 1 else "configs/target.yaml"
     with open(cfg_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
-    env, bddl = make_env(cfg)
+    env, bddl, _, init_states = make_env(cfg)
+    if len(init_states):
+        env.reset()
+        env.set_init_state(init_states[0])
     print(f"env ready: {bddl}")
     print("\n[1] gripper convention")
     check_gripper(env)
