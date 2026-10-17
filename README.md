@@ -1,10 +1,9 @@
 # Phone Video to LIBERO Bowl Placement
 
-Submission for the [Humanoid Internship Challenge](https://jobs.ashbyhq.com/humanoid/e1a2a9de-ad23-4632-9d93-ee50fd41a221).
-
+Submission for the Humanoid Internship role!
 ## Working result
 
-The applicant recorded `IMG_7805.MOV`, showing a black bowl moved onto a plate.
+For the initial data, I did many takes of picking a black bowl moving it onto a plate.
 We measured bowl centers at selected timestamps (the hand occludes some frames)
 and saved those measurements in
 [`data/derived/IMG_7805_bowl_waypoints.csv`](data/derived/IMG_7805_bowl_waypoints.csv).
