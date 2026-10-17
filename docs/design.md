@@ -31,6 +31,11 @@ expert grasp. The rollout ends at physics success before gripper release.
 Its published CSV contains only object positions from the private
 V2D bundle.
 
+For the separate release-visible example, the replay continues through the
+expert release command, then holds the gripper open and lifts the arm away.
+The final physics success check still passes; this extension was tested on
+one initial state and is not part of the five-run comparison.
+
 The output HDF5 contains simulator camera images and actions from the executed
 rollout. It is suitable as a candidate demonstration for later training, but
 we have not trained or evaluated a learned policy with it. The five successful

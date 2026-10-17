@@ -27,8 +27,20 @@ python3 scripts/export_v2d_object_track.py \
 
 The five video-guided replay lengths were 190, 206, 201, 191, and 199 steps; the V2D object-guided lengths were 190, 206, 202, 190, and 201. The successful HDF5 files stay local because they contain full simulator camera streams. See [results and machine-readable metrics](results.md).
 
-To render a complete two-camera MP4 from a successful rollout, install
-`ffmpeg` and run:
+To show the gripper release and arm retreat, run one V2D-guided episode with
+`--finish-release`. It continues after first physics success, replays the
+official release command, holds the gripper open for 12 steps, and lifts it
+0.12 m over 24 more steps. Keep this result separate from the five-run
+first-success evaluation:
+
+```bash
+python scripts/video_guided_replay.py \
+  --config configs/target.yaml \
+  --expert-hdf5 /absolute/path/to/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5 \
+  --mode v2d --episodes 1 --finish-release --out-dir data/v2d_object_replay
+```
+
+Install `ffmpeg` to render a complete two-camera MP4 from the resulting HDF5:
 
 ```bash
 python3 scripts/render_replay_video.py \
@@ -38,7 +50,8 @@ python3 scripts/render_replay_video.py \
 
 The example input path assumes the V2D replay used
 `--out-dir data/v2d_object_replay`. The [published MP4](media/full_libero_bowl_placement.mp4)
-uses all 190 frames of that successful episode at the recorded 20 Hz.
+uses all 239 recorded frames of that successful episode at 20 Hz. See its
+[extended-run metrics](v2d_full_release_metrics.json).
 
 ## Experimental full-hand route
 

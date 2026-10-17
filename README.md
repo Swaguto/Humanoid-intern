@@ -1,6 +1,6 @@
 ![Recorded bowl-to-plate demonstration beside a LIBERO robot replay](docs/media/recording_and_libero.gif)
 
-*My bowl-to-plate demonstration, shown at 2× speed, beside its V2D object-guided LIBERO replay. The robot uses an official demonstration for its grasp.*
+*My bowl-to-plate demonstration, sped up to match the full V2D object-guided LIBERO replay. Both sequences now show the bowl being placed and the hand or gripper releasing it. The robot uses an official demonstration for its grasp and release.*
 
 # Phone Video to LIBERO Bowl Placement
 
@@ -19,11 +19,12 @@ results and limitations of each.
 ![Complete LIBERO bowl placement replay, external camera](docs/media/full_libero_bowl_placement_preview.gif)
 
 [Watch the full replay with external and wrist cameras](docs/media/full_libero_bowl_placement.mp4).
-The MP4 contains every frame of a successful 190-step, 9.5-second V2D
-object-guided rollout at 20 Hz. The inline GIF shows the full external-camera
-sequence at 10 fps. My video guides the transport phase; the grasp comes from
-an official LIBERO demonstration. Recording stops when the physics success
-check passes, before the gripper visibly withdraws.
+The MP4 contains all 239 steps of a successful 11.95-second V2D object-guided
+rollout at 20 Hz. The inline GIF shows the full external-camera sequence at
+10 fps. My video guides transport; an official LIBERO demonstration supplies
+the grasp and release command. After release, 36 scripted steps hold the
+gripper open and lift it clear. The bowl remains on the plate at the final
+physics check ([metrics](docs/v2d_full_release_metrics.json)).
 
 I measured bowl centers at selected timestamps (my hand occludes some frames)
 and saved those measurements in
@@ -32,8 +33,9 @@ and saved those measurements in
 horizontal displacement to control the robot's transport progress, vertical
 image motion to modulate lift height, and timestamps to set transport speed.
 An official LIBERO demonstration supplies the grasp and other non-transport
-actions. The video replaces its transport actions with OSC commands; this
-rollout stops at physics success before the gripper opens.
+actions. The video replaces its transport actions with OSC commands. The
+original five-run evaluation stops at first physics success; the full replay
+above continues through release and retreat.
 
 [Watch a 19-second clip of my bowl-to-plate demonstration](docs/media/bowl_to_plate_demonstration_excerpt.mp4).
 The full-resolution recording remains private; this public clip has no audio or source
@@ -122,7 +124,7 @@ retargeting, data conversion, and the limits of each route.
 
 | Part | What the result means |
 |---|---|
-| Video-guided transport | Both the measured 2D waypoints and V2D bowl positions succeeded in 5/5 replays on the same five official initial states. An expert demonstration supplied the grasp; episodes ended at physics success before release. |
+| Video-guided transport | Both the measured 2D waypoints and V2D bowl positions succeeded in 5/5 replays on the same five official initial states. Those episodes ended at first physics success. A separate V2D-guided replay continued through release and retreat (1/1). |
 | V2D reconstruction | Processed 243 frames, but early hand poses were filled before the hand entered, and the estimated bowl rotation flips near placement. |
 | Direct hand-to-robot replay | Adapter implemented; the first replay missed the bowl (0/1). Wrist-to-tool calibration is still needed. |
 | LeRobot dataset conversion | Converter implemented; a converted dataset still needs end-to-end validation. |

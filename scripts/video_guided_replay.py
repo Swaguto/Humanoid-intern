@@ -91,14 +91,22 @@ def record_step(rec: dict, obs: dict, action: np.ndarray) -> None:
     rec["wrist_images"].append(np.asarray(obs["robot0_eye_in_hand_image"], np.uint8))
 
 
-def step(env, obs: dict, action: np.ndarray, rec: dict) -> tuple[dict, bool]:
+def step(env, obs: dict, action: np.ndarray, rec: dict,
+         stop_on_success: bool = True) -> tuple[dict, bool, bool]:
     record_step(rec, obs, action)
     obs, _, done, _ = env.step(action)
-    return obs, bool(done or env.check_success())
+    success = bool(env.check_success())
+    # LIBERO reports task success as `done` without terminating robosuite's
+    # underlying episode. Only a real horizon termination should halt the
+    # optional release continuation.
+    horizon_done = bool(getattr(getattr(env, "env", env), "done", False))
+    return obs, bool(horizon_done or (stop_on_success and (done or success))), success
 
 
 def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int,
-             mode: str = "video") -> tuple[dict, dict, dict]:
+             mode: str = "video", finish_release: bool = False,
+             release_hold_steps: int = 12, retreat_steps: int = 24,
+             retreat_height_m: float = 0.12) -> tuple[dict, dict, dict]:
     actions = np.asarray(demo["actions"])
     start, end = phase_indices(actions)
     pos = np.asarray(demo["obs/ee_pos"])
@@ -108,18 +116,35 @@ def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int,
                            "state", "images", "wrist_images")}
     env.reset()
     obs = env.set_init_state(np.asarray(demo.attrs["init_state"]))
+    halted = False
+    first_success_step = None
+    release_command_step = None
+    saw_closed_command = False
+
+    def advance(current_obs: dict, action: np.ndarray) -> tuple[dict, bool]:
+        nonlocal first_success_step, release_command_step, saw_closed_command
+        if action[-1] > 0:
+            saw_closed_command = True
+        elif saw_closed_command and action[-1] < 0 and release_command_step is None:
+            release_command_step = len(rec["actions"]) + 1
+        next_obs, should_halt, success = step(env, current_obs, action, rec,
+                                               stop_on_success=not finish_release)
+        if success and first_success_step is None:
+            first_success_step = len(rec["actions"])
+        return next_obs, should_halt
+
     if mode == "expert":
         for action in actions:
-            obs, done = step(env, obs, action, rec)
-            if done:
+            obs, halted = advance(obs, action)
+            if halted:
                 break
     else:
         for action in actions[:start]:
-            obs, done = step(env, obs, action, rec)
-            if done:
+            obs, halted = advance(obs, action)
+            if halted:
                 break
 
-        if not done:
+        if not halted:
             t0, t1 = points[0, 0], points[-1, 0]
             x0, x1 = points[0, 1], points[-1, 1]
             y0 = points[0, 2]
@@ -137,14 +162,36 @@ def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int,
                 target[2] = max(pos[start, 2], pos[end, 2]) + lift
                 quat = orient([progress]).as_quat()[0]
                 action = build_env_action(target, quat, obs, 0.0, cfg)
-                obs, done = step(env, obs, action, rec)
-                if done:
+                obs, halted = advance(obs, action)
+                if halted:
                     break
 
-        if not done:
+        if not halted:
             for action in actions[end:]:
-                obs, done = step(env, obs, action, rec)
-                if done:
+                obs, halted = advance(obs, action)
+                if halted:
+                    break
+
+    post_release_steps = 0
+    if finish_release and release_command_step is not None and not halted:
+        if release_hold_steps < 0 or retreat_steps < 0 or retreat_height_m < 0:
+            raise ValueError("post-release steps and retreat height must be nonnegative")
+        hold_pos = np.asarray(obs["robot0_eef_pos"], float).copy()
+        hold_quat = np.asarray(obs["robot0_eef_quat"], float).copy()
+        for _ in range(release_hold_steps):
+            action = build_env_action(hold_pos, hold_quat, obs, 1.0, cfg)
+            obs, halted = advance(obs, action)
+            post_release_steps += 1
+            if halted:
+                break
+        if not halted:
+            retreat_start = np.asarray(obs["robot0_eef_pos"], float).copy()
+            for fraction in np.linspace(0.0, 1.0, retreat_steps + 1)[1:]:
+                target = retreat_start + np.array([0.0, 0.0, retreat_height_m * fraction])
+                action = build_env_action(target, hold_quat, obs, 1.0, cfg)
+                obs, halted = advance(obs, action)
+                post_release_steps += 1
+                if halted:
                     break
 
     success = bool(env.check_success())
@@ -152,6 +199,12 @@ def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int,
               "success": success, "steps": len(rec["actions"]),
               "expert_transport_start": start, "expert_transport_end": end,
               "final_bowl_pos": np.asarray(obs["akita_black_bowl_1_pos"]).round(4).tolist()}
+    if finish_release:
+        result.update(first_success_step=first_success_step,
+                      release_command_step=release_command_step,
+                      post_release_steps=post_release_steps,
+                      release_completed=release_command_step is not None and not halted,
+                      final_gripper_qpos=np.asarray(obs["robot0_gripper_qpos"]).round(4).tolist())
     return rec, result, obs
 
 
@@ -188,6 +241,11 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=5)
     parser.add_argument("--out-dir", default="data/video_guided_replay")
     parser.add_argument("--save-failures", action="store_true")
+    parser.add_argument("--finish-release", action="store_true",
+                        help="continue the expert tail after first physics success so the gripper can open")
+    parser.add_argument("--release-hold-steps", type=int, default=12)
+    parser.add_argument("--retreat-steps", type=int, default=24)
+    parser.add_argument("--retreat-height-m", type=float, default=0.12)
     parser.add_argument("--mode", choices=("video", "v2d", "expert"), default="video")
     args = parser.parse_args()
 
@@ -216,7 +274,9 @@ def main() -> None:
                 demo = demos[f"data/demo_{i}"]
                 rec, result, obs = run_demo(env, demo, cfg, points,
                                             int(cfg["libero"].get("control_freq", 20)),
-                                            args.mode)
+                                            args.mode, args.finish_release,
+                                            args.release_hold_steps, args.retreat_steps,
+                                            args.retreat_height_m)
                 results.append(result)
                 print(result, flush=True)
                 if result["success"] or args.save_failures:
@@ -229,6 +289,7 @@ def main() -> None:
     finally:
         env.close()
     summary = {"task": task, "mode": args.mode,
+               "finish_release": args.finish_release,
                "video_waypoints": str(args.waypoints) if args.mode == "video" else None,
                "v2d_object_track": str(args.v2d_object_csv) if args.mode == "v2d" else None,
                "video_transport_s": [args.start_s, args.end_s],

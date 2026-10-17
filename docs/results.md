@@ -7,7 +7,8 @@ Thirteen bowl-center waypoints were read from frames resized to 512×288; the ar
 bowl in some frames, so this is a sparse inspected track. The replay uses the
 first five official LIBERO demonstrations for grasp and non-transport actions
 and replaces their transport phase with video-driven end-effector targets.
-All saved episodes end at first physics success before gripper release.
+The original five-run evaluations end at first physics success before gripper
+release. A separate extended run below continues through release.
 
 | Evaluation | Attempts | Successes | Mean steps | Criterion |
 |---|---:|---:|---:|---|
@@ -22,10 +23,9 @@ and 199 steps. [Machine-readable metrics](video_guided_metrics.json) and an
 The V2D object-guided episodes have the same schema and lengths 190, 206, 202,
 190, and 201. All five passed the converter's episode validation; see their
 [metrics](v2d_object_metrics.json) and [example final render](media/v2d_object_demo_0_final.png).
-The [full 190-frame simulator replay](media/full_libero_bowl_placement.mp4)
-shows the first successful V2D object-guided episode from both camera views.
-Recording stops at the first physics success, while the gripper is still over
-the bowl; it does not show a completed arm withdrawal.
+The [full two-camera simulator replay](media/full_libero_bowl_placement.mp4)
+shows an extended V2D object-guided episode with the gripper opening and the
+arm lifting clear. It is also shown in the [final render](media/v2d_full_release_final.png).
 The original full-resolution MOV and licensed MANO models are not committed.
 An authorized [short source-video excerpt](media/bowl_to_plate_demonstration_excerpt.mp4) shows
 the recorded task.
@@ -40,6 +40,22 @@ not measure generalization to new objects or tasks.
 Environment: LIBERO `8f1084e`, robosuite 1.4.0, MuJoCo 2.3.7, NumPy 1.26.4,
 Python 3.10, headless EGL on an NVIDIA L40S. The task is
 `pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate`.
+
+## Release-visible replay
+
+The first V2D-guided rollout was repeated with `--finish-release` on the same
+official initial state. The bowl first reached the physics success condition
+at step 190. The expert release command began at step 200; 36 further scripted
+open-and-retreat steps left the gripper clear of the bowl. The final gripper
+joint positions were `[0.0398, -0.0395]`, close to the initial open positions,
+and `env.check_success()` was still true at step 239. This is **1/1 extended
+replay**, separate from the five first-success results above. See the
+[machine-readable metrics](v2d_full_release_metrics.json).
+
+This extended run used LIBERO `8f1084e`, robosuite 1.4.0, MuJoCo 2.3.7,
+NumPy 1.26.4, Python 3.11, and macOS CGL rendering. The user-recorded video
+still drives only transport; the grasp, release, and retreat are not inferred
+from that video.
 
 ## Full video-to-hand retargeting
 

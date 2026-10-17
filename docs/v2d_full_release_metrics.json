@@ -1,0 +1,35 @@
+{
+  "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "mode": "v2d",
+  "finish_release": true,
+  "video_waypoints": null,
+  "v2d_object_track": "data/derived/bowl_to_plate_v2d_object_track.csv",
+  "video_transport_s": [
+    9.0,
+    15.0
+  ],
+  "attempts": 1,
+  "successes": 1,
+  "episodes": [
+    {
+      "expert_demo": "demo_0",
+      "success": true,
+      "steps": 239,
+      "expert_transport_start": 59,
+      "expert_transport_end": 80,
+      "final_bowl_pos": [
+        0.0563,
+        0.1703,
+        0.9078
+      ],
+      "first_success_step": 190,
+      "release_command_step": 200,
+      "post_release_steps": 36,
+      "release_completed": true,
+      "final_gripper_qpos": [
+        0.0398,
+        -0.0395
+      ]
+    }
+  ]
+}
