@@ -27,6 +27,19 @@ python3 scripts/export_v2d_object_track.py \
 
 The five video-guided replay lengths were 190, 206, 201, 191, and 199 steps; the V2D object-guided lengths were 190, 206, 202, 190, and 201. The successful HDF5 files stay local because they contain full simulator camera streams. See [results and machine-readable metrics](results.md).
 
+To render a complete two-camera MP4 from a successful rollout, install
+`ffmpeg` and run:
+
+```bash
+python3 scripts/render_replay_video.py \
+  --input data/v2d_object_replay/v2d_demo_0_ok.hdf5 \
+  --output data/v2d_object_replay/full_replay.mp4
+```
+
+The example input path assumes the V2D replay used
+`--out-dir data/v2d_object_replay`. The [published MP4](media/full_libero_bowl_placement.mp4)
+uses all 190 frames of that successful episode at the recorded 20 Hz.
+
 ## Experimental full-hand route
 
 The broader route uses **NVIDIA V2D** to estimate a MANO hand trajectory and object pose, maps wrist pose and aperture into LIBERO OSC commands, and filters replays by physics success. V2D reconstructed 243 reported object and hand poses for this 24.3-second, 10 fps clip. Early hand poses were filled before the hand entered the frame. The first direct hand-to-arm replay failed 0/1 because the gripper missed the bowl. Policy fine-tuning has not been run.

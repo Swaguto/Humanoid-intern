@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 290" role="img" aria-labelledby="title desc">
   <title id="title">Phone video to LIBERO replay pipeline</title>
-  <desc id="desc">The applicant's bowl video supplies either measured image waypoints or a reconstructed V2D object track. Both guide the transport phase in LIBERO, while an official demonstration supplies grasp and release. A separate full-hand retargeting attempt failed.</desc>
+  <desc id="desc">The applicant's bowl video supplies either measured image waypoints or a reconstructed V2D object track. Both guide the transport phase in LIBERO, while an official demonstration supplies the grasp. The saved rollouts end at physics success before release. A separate full-hand retargeting attempt failed.</desc>
   <rect width="1200" height="290" rx="22" fill="#101820"/>
   <g font-family="Arial, Helvetica, sans-serif" fill="#f4f7f8">
     <text x="32" y="39" font-size="22" font-weight="700">From one phone video to two tested transports</text>
-    <text x="33" y="64" font-size="14" fill="#b7c7cd">The official LIBERO demonstration supplies grasp and release in both variants.</text>
+    <text x="33" y="64" font-size="14" fill="#b7c7cd">The official LIBERO demonstration supplies the grasp in both variants.</text>
     <rect x="32" y="92" width="201" height="118" rx="14" fill="#263940" stroke="#73909a"/>
     <text x="52" y="124" font-size="18" font-weight="700">Recorded video</text>
     <text x="52" y="150" font-size="14" fill="#d1dee2">Bowl → plate</text>
@@ -20,7 +20,7 @@
     <rect x="608" y="92" width="244" height="118" rx="14" fill="#344237" stroke="#8fc393"/>
     <text x="628" y="123" font-size="18" font-weight="700">LIBERO transport</text>
     <text x="628" y="149" font-size="14" fill="#dce9dc">OSC robot commands</text>
-    <text x="628" y="173" font-size="14" fill="#dce9dc">Expert grasp + release</text>
+    <text x="628" y="173" font-size="14" fill="#dce9dc">Stop at physics success</text>
     <path d="M853 151h56" stroke="#d1dee2" stroke-width="3" marker-end="url(#arrow)"/>
     <rect x="910" y="92" width="255" height="118" rx="14" fill="#214d37" stroke="#77d196"/>
     <text x="930" y="125" font-size="19" font-weight="700">5/5 each</text>

@@ -19,6 +19,7 @@ outputs/
 *.h5
 *.mp4
 !docs/media/bowl_to_plate_demonstration_excerpt.mp4
+!docs/media/full_libero_bowl_placement.mp4
 *.mov
 *.MOV
 *.pkl

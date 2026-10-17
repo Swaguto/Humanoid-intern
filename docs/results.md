@@ -5,8 +5,9 @@
 `bowl_to_plate_demonstration.mov` is my recorded bowl-to-plate demonstration.
 Thirteen bowl-center waypoints were read from frames resized to 512×288; the arm hides the
 bowl in some frames, so this is a sparse inspected track. The replay uses the
-first five official LIBERO demonstrations for grasp and release and replaces
-their transport phase with video-driven end-effector targets.
+first five official LIBERO demonstrations for grasp and non-transport actions
+and replaces their transport phase with video-driven end-effector targets.
+All saved episodes end at first physics success before gripper release.
 
 | Evaluation | Attempts | Successes | Mean steps | Criterion |
 |---|---:|---:|---:|---|
@@ -21,6 +22,10 @@ and 199 steps. [Machine-readable metrics](video_guided_metrics.json) and an
 The V2D object-guided episodes have the same schema and lengths 190, 206, 202,
 190, and 201. All five passed the converter's episode validation; see their
 [metrics](v2d_object_metrics.json) and [example final render](media/v2d_object_demo_0_final.png).
+The [full 190-frame simulator replay](media/full_libero_bowl_placement.mp4)
+shows the first successful V2D object-guided episode from both camera views.
+Recording stops at the first physics success, while the gripper is still over
+the bowl; it does not show a completed arm withdrawal.
 The original full-resolution MOV and licensed MANO models are not committed.
 An authorized [short source-video excerpt](media/bowl_to_plate_demonstration_excerpt.mp4) shows
 the recorded task.
@@ -28,8 +33,8 @@ the recorded task.
 The [expert replay metrics](expert_baseline_metrics.json) establish a control:
 the same five initial states also succeed with the unmodified official actions.
 The video-guided transport takes roughly twice as many control steps because
-it follows the recorded six-second motion. Both rows replay expert grasp and
-release. These are controlled replays, not trained policy evaluations, and do
+it follows the recorded six-second motion. Both rows use the expert grasp.
+These are controlled replays, not trained policy evaluations, and do
 not measure generalization to new objects or tasks.
 
 Environment: LIBERO `8f1084e`, robosuite 1.4.0, MuJoCo 2.3.7, NumPy 1.26.4,

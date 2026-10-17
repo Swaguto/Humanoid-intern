@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Use measured phone-video bowl motion for the transport phase of a LIBERO demo.
 
-The official demonstration supplies grasp and release. During transport, the
+The official demonstration supplies the grasp and other non-transport actions.
+The replay may stop at first physics success before release. During transport, the
 robot follows positions and timing derived from the applicant's video rather
 than replaying the official transport actions. This is a deliberately limited
 baseline alongside the full V2D retargeting experiment.

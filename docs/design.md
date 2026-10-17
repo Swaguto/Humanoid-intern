@@ -15,8 +15,9 @@ raises the end-effector slightly, and the time spacing sets the transport
 speed. LIBERO's OSC controller executes these targets, and physics determines
 whether the bowl stays grasped and reaches the plate.
 
-A task-matched official demonstration provides the grasp and release. This
-solves the mismatch between the real handled bowl and LIBERO's handle-free bowl,
+A task-matched official demonstration provides the grasp and other actions
+outside video-guided transport. This addresses the mismatch between the real
+handled bowl and LIBERO's handle-free bowl,
 but it limits the claim: the real video controls transport, not the entire
 manipulation. The sparse waypoints were inspected manually because the hand
 occludes the bowl in several frames. The result is reproducible with the
@@ -24,9 +25,10 @@ committed CSV and script; see [results](results.md).
 
 The second tested variant uses V2D's reconstructed 3D bowl x-coordinate for
 transport progress and its height above a straight start-to-end trend for lift.
-The lift returns to zero at handoff to the expert release. It also succeeded
-on the same five initial states, but still depends on the expert grasp and
-release. Its published CSV contains only object positions from the private
+The lift returns to zero at handoff to the expert post-transport actions. It
+also succeeded on the same five initial states, but still depends on the
+expert grasp. The rollout ends at physics success before gripper release.
+Its published CSV contains only object positions from the private
 V2D bundle.
 
 The output HDF5 contains simulator camera images and actions from the executed

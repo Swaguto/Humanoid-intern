@@ -1,6 +1,6 @@
 ![Recorded bowl-to-plate demonstration beside a LIBERO robot replay](docs/media/recording_and_libero.gif)
 
-*My bowl-to-plate demonstration, shown at 2× speed, beside its V2D object-guided LIBERO replay. The robot uses an official demonstration for grasp and release.*
+*My bowl-to-plate demonstration, shown at 2× speed, beside its V2D object-guided LIBERO replay. The robot uses an official demonstration for its grasp.*
 
 # Phone Video to LIBERO Bowl Placement
 
@@ -14,14 +14,26 @@ to guide a LIBERO robot's transport motion. The repository contains the tested
 video-guided replays, an experimental V2D hand-retargeting route, and the
 results and limitations of each.
 
+## Full simulated robot replay
+
+![Complete LIBERO bowl placement replay, external camera](docs/media/full_libero_bowl_placement_preview.gif)
+
+[Watch the full replay with external and wrist cameras](docs/media/full_libero_bowl_placement.mp4).
+The MP4 contains every frame of a successful 190-step, 9.5-second V2D
+object-guided rollout at 20 Hz. The inline GIF shows the full external-camera
+sequence at 10 fps. My video guides the transport phase; the grasp comes from
+an official LIBERO demonstration. Recording stops when the physics success
+check passes, before the gripper visibly withdraws.
+
 I measured bowl centers at selected timestamps (my hand occludes some frames)
 and saved those measurements in
 [`data/derived/bowl_to_plate_waypoints.csv`](data/derived/bowl_to_plate_waypoints.csv).
 [`scripts/video_guided_replay.py`](scripts/video_guided_replay.py) uses the
 horizontal displacement to control the robot's transport progress, vertical
 image motion to modulate lift height, and timestamps to set transport speed.
-An official LIBERO demonstration supplies grasp and release. The video replaces
-its transport actions with OSC commands.
+An official LIBERO demonstration supplies the grasp and other non-transport
+actions. The video replaces its transport actions with OSC commands; this
+rollout stops at physics success before the gripper opens.
 
 [Watch a 19-second clip of my bowl-to-plate demonstration](docs/media/bowl_to_plate_demonstration_excerpt.mp4).
 The full-resolution recording remains private; this public clip has no audio or source
@@ -36,7 +48,8 @@ files contain simulator images, robot state, and actions. See
 Using V2D's reconstructed 3D bowl track for transport also passed **5/5** on
 those states; its [metrics](docs/v2d_object_metrics.json) and
 [derived object positions](data/derived/bowl_to_plate_v2d_object_track.csv) are
-included. Both variants retain the official grasp and release.
+included. Both variants retain the official grasp and post-transport actions
+up to the first physics success.
 Unmodified expert actions on those same five initial states also passed 5/5
 in 98.0 mean steps, versus 197.4 for the video-guided replay. This control
 isolates the change to the transport phase; it does not demonstrate an
@@ -66,7 +79,7 @@ The [2D replay metrics](docs/video_guided_metrics.json), [V2D object replay metr
 ## Design choices and lessons
 
 - **Why this task:** My bowl-to-plate recording matches a LIBERO task with a physics success check. I inspected sparse 2D bowl waypoints because my hand occludes the bowl in some frames, then tested V2D's 3D bowl track as a second transport signal.
-- **Why use an expert grasp and release:** Keeping the task-matched expert grasp and release isolates the contribution of my video's transport motion. [More design detail](docs/design.md).
+- **Why use an expert grasp:** Keeping task-matched expert actions outside transport isolates the contribution of my video's motion. [More design detail](docs/design.md).
 - **What worked:** Both video-driven transport variants passed 5/5 replays on the same five official initial states. The unmodified expert also passed 5/5, so this is not evidence of better performance or generalization.
 - **What did not:** Direct V2D hand-to-robot replay failed once because the gripper missed the bowl. V2D's estimated bowl orientation flips near placement, and wrist-to-tool pose and workspace yaw need calibration. The successful object-guided transport uses bowl *position*, not that faulty rotation. The display correction is reproducible with [`scripts/constrain_v2d_bowl_upright.py`](scripts/constrain_v2d_bowl_upright.py); it does not change the replay metrics. [Failure frames](docs/media/v2d_direct_replay_fail_montage.png) and [full results](docs/results.md). No policy fine-tuning or evaluation has been run.
 
@@ -109,7 +122,7 @@ retargeting, data conversion, and the limits of each route.
 
 | Part | What the result means |
 |---|---|
-| Video-guided transport | Both the measured 2D waypoints and V2D bowl positions succeeded in 5/5 replays on the same five official initial states. An expert demonstration still supplied grasp and release. |
+| Video-guided transport | Both the measured 2D waypoints and V2D bowl positions succeeded in 5/5 replays on the same five official initial states. An expert demonstration supplied the grasp; episodes ended at physics success before release. |
 | V2D reconstruction | Processed 243 frames, but early hand poses were filled before the hand entered, and the estimated bowl rotation flips near placement. |
 | Direct hand-to-robot replay | Adapter implemented; the first replay missed the bowl (0/1). Wrist-to-tool calibration is still needed. |
 | LeRobot dataset conversion | Converter implemented; a converted dataset still needs end-to-end validation. |
