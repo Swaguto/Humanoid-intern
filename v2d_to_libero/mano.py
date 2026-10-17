@@ -72,6 +72,11 @@ def _install_chumpy_stub() -> None:
 
     class _ChumMod(types.ModuleType):
         def __getattr__(self, name):
+            # Import and traceback tools probe module metadata such as
+            # __file__. Returning a Ch class for those breaks later imports
+            # (notably torch via LIBERO's benchmark module).
+            if name.startswith("__"):
+                raise AttributeError(name)
             return _Ch
 
     stub = _ChumMod("chumpy")

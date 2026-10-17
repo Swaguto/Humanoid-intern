@@ -22,6 +22,13 @@ manipulation. The sparse waypoints were inspected manually because the hand
 occludes the bowl in several frames. The result is reproducible with the
 committed CSV and script; see [results](results.md).
 
+The second tested variant uses V2D's reconstructed 3D bowl x-coordinate for
+transport progress and its height above a straight start-to-end trend for lift.
+The lift returns to zero at handoff to the expert release. It also succeeded
+on the same five initial states, but still depends on the expert grasp and
+release. Its published CSV contains only object positions from the private
+V2D bundle.
+
 The output HDF5 contains simulator camera images and actions from the executed
 rollout. It is suitable as a candidate demonstration for later training, but
 we have not trained or evaluated a learned policy with it. The five successful
@@ -45,13 +52,15 @@ This route has several unresolved calibration risks:
 - Real hand aperture is only a proxy for a two-finger robot gripper command.
 - The video bowl's handle has no simulator counterpart; a faithful wrist path
   may produce the wrong contact geometry.
-- Hand occlusion can shorten the valid trajectory. Interpolating across a long
-  gap could invent an unsafe motion, so the extractor uses the longest valid
-  run.
+- V2D filled early frames before the hand entered the view and marked them
+  valid in its result bundle. The direct replay trusted those filled poses;
+  a successful full-hand system needs visibility checks and explicit trimming
+  of such intervals.
 
-The live V2D run uses an approximate metric bowl mesh. Object-pose and replay
-quality must be inspected before making any claim about this route. A failed
-replay is a calibration result, not a training demonstration.
+The completed V2D run used an approximate metric bowl mesh. The first direct
+hand retargeting replay failed because the gripper missed the bowl. The
+default identity wrist-to-tool transform and workspace yaw were not calibrated;
+the failed replay is a calibration result, not a training demonstration.
 
 ## What would establish a policy benefit
 

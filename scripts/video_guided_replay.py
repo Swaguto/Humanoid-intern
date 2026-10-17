@@ -42,6 +42,23 @@ def load_waypoints(path: Path, start_s: float, end_s: float) -> np.ndarray:
     return points
 
 
+def load_v2d_object_points(path: Path, start_s: float, end_s: float) -> np.ndarray:
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) < 2:
+        raise ValueError("V2D object CSV needs at least two rows")
+    points = np.array([[float(row[k]) for k in ("time_s", "x_m", "y_m", "z_m")]
+                       for row in rows], dtype=float)
+    if len(points) < 2 or not np.isfinite(points).all() or np.any(np.diff(points[:, 0]) <= 0):
+        raise ValueError("V2D object points must be finite with increasing times")
+    points = points[(points[:, 0] >= start_s - 1e-6) & (points[:, 0] <= end_s + 1e-6)]
+    if len(points) < 2 or abs(points[0, 0] - start_s) > 1e-6 or abs(points[-1, 0] - end_s) > 1e-6:
+        raise ValueError("start/end times must be present in the V2D object track")
+    if abs(points[0, 1] - points[-1, 1]) < 0.01:
+        raise ValueError("V2D object x displacement is too small")
+    return points
+
+
 def phase_indices(actions: np.ndarray) -> tuple[int, int]:
     grip = actions[:, -1]
     close = np.flatnonzero((grip[1:] > 0) & (grip[:-1] < 0))
@@ -110,7 +127,13 @@ def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int,
                 y = np.interp(t, points[:, 0], points[:, 2])
                 progress = float(np.clip((x0 - x) / (x0 - x1), 0.0, 1.0))
                 target = pos[start] * (1 - progress) + pos[end] * progress
-                target[2] = max(pos[start, 2], pos[end, 2]) + 0.0015 * max(0, y0 - y)
+                if mode == "v2d":
+                    z = np.interp(t, points[:, 0], points[:, 3])
+                    baseline_z = points[0, 3] * (1 - progress) + points[-1, 3] * progress
+                    lift = max(0.0, z - baseline_z)
+                else:
+                    lift = 0.0015 * max(0.0, y0 - y)
+                target[2] = max(pos[start, 2], pos[end, 2]) + lift
                 quat = orient([progress]).as_quat()[0]
                 action = build_env_action(target, quat, obs, 0.0, cfg)
                 obs, done = step(env, obs, action, rec)
@@ -144,8 +167,9 @@ def save_episode(path: Path, rec: dict, result: dict, task: str, fps: int,
                 f.create_dataset(key, data=data)
             else:
                 f.require_group("observations").create_dataset(key, data=data)
-        f.attrs["source"] = ("applicant_video_guided_transport" if mode == "video"
-                             else "libero_expert_replay")
+        f.attrs["source"] = {"video": "applicant_video_guided_transport",
+                              "v2d": "applicant_v2d_object_guided_transport",
+                              "expert": "libero_expert_replay"}[mode]
         f.attrs["task"] = task
         f.attrs["success"] = result["success"]
         f.attrs["num_samples"] = result["steps"]
@@ -157,12 +181,13 @@ def main() -> None:
     parser.add_argument("--config", default="configs/target.yaml")
     parser.add_argument("--expert-hdf5", required=True)
     parser.add_argument("--waypoints", default="data/derived/IMG_7805_bowl_waypoints.csv")
+    parser.add_argument("--v2d-object-csv", default="data/derived/IMG_7805_v2d_object_track.csv")
     parser.add_argument("--start-s", type=float, default=9.0)
     parser.add_argument("--end-s", type=float, default=15.0)
     parser.add_argument("--episodes", type=int, default=5)
     parser.add_argument("--out-dir", default="data/video_guided_replay")
     parser.add_argument("--save-failures", action="store_true")
-    parser.add_argument("--mode", choices=("video", "expert"), default="video")
+    parser.add_argument("--mode", choices=("video", "v2d", "expert"), default="video")
     args = parser.parse_args()
 
     from libero.libero import benchmark
@@ -170,7 +195,8 @@ def main() -> None:
 
     with open(args.config, encoding="utf-8") as handle:
         cfg = yaml.safe_load(handle)
-    points = load_waypoints(Path(args.waypoints), args.start_s, args.end_s)
+    points = (load_v2d_object_points(Path(args.v2d_object_csv), args.start_s, args.end_s)
+              if args.mode == "v2d" else load_waypoints(Path(args.waypoints), args.start_s, args.end_s))
     suite = benchmark.get_benchmark_dict()[cfg["libero"]["suite"]]()
     task = cfg["libero"]["task"]
     task_id = suite.get_task_names().index(task)
@@ -203,6 +229,7 @@ def main() -> None:
         env.close()
     summary = {"task": task, "mode": args.mode,
                "video_waypoints": str(args.waypoints) if args.mode == "video" else None,
+               "v2d_object_track": str(args.v2d_object_csv) if args.mode == "v2d" else None,
                "video_transport_s": [args.start_s, args.end_s],
                "attempts": len(results), "successes": sum(r["success"] for r in results),
                "episodes": results}

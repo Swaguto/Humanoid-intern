@@ -3,9 +3,11 @@
 #
 # Usage:
 #   V2D_ROOT=/path/to/video_to_data ./scripts/run_v2d.sh \
-#       --video /abs/path/clip01.mp4 --object_prompt "black bowl" \
-#       --output_dir /abs/path/outputs/clip01 --reference_frame 0 \
-#       --hand_tracking dynhamr --run_droid_slam --run_gravity_alignment
+#       --video /abs/path/clip01_10fps.mp4 --object_prompt "black bowl" \
+#       --object_mesh /abs/path/approx_black_bowl_14cm.obj \
+#       --skip_object_scale_estimation \
+#       --output_dir /abs/path/outputs/clip01 --reference_frame 70 \
+#       --hand_tracking hamer --run_gravity_alignment
 set -euo pipefail
 
 V2D_ROOT="${V2D_ROOT:-$HOME/video_to_data}"

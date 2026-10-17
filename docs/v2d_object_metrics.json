@@ -1,0 +1,74 @@
+{
+  "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "mode": "v2d",
+  "video_waypoints": null,
+  "v2d_object_track": "data/derived/IMG_7805_v2d_object_track.csv",
+  "video_transport_s": [
+    9.0,
+    15.0
+  ],
+  "attempts": 5,
+  "successes": 5,
+  "episodes": [
+    {
+      "expert_demo": "demo_0",
+      "success": true,
+      "steps": 190,
+      "expert_transport_start": 59,
+      "expert_transport_end": 80,
+      "final_bowl_pos": [
+        0.0559,
+        0.1811,
+        0.9105
+      ]
+    },
+    {
+      "expert_demo": "demo_1",
+      "success": true,
+      "steps": 206,
+      "expert_transport_start": 74,
+      "expert_transport_end": 99,
+      "final_bowl_pos": [
+        0.067,
+        0.1636,
+        0.9097
+      ]
+    },
+    {
+      "expert_demo": "demo_2",
+      "success": true,
+      "steps": 202,
+      "expert_transport_start": 60,
+      "expert_transport_end": 90,
+      "final_bowl_pos": [
+        0.0238,
+        0.1925,
+        0.9156
+      ]
+    },
+    {
+      "expert_demo": "demo_3",
+      "success": true,
+      "steps": 190,
+      "expert_transport_start": 54,
+      "expert_transport_end": 77,
+      "final_bowl_pos": [
+        0.0975,
+        0.1753,
+        0.9086
+      ]
+    },
+    {
+      "expert_demo": "demo_4",
+      "success": true,
+      "steps": 201,
+      "expert_transport_start": 64,
+      "expert_transport_end": 85,
+      "final_bowl_pos": [
+        0.0699,
+        0.1676,
+        0.9069
+      ]
+    }
+  ]
+}

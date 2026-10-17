@@ -24,6 +24,10 @@ On the first five official initial demonstrations of
 files contain simulator images, robot state, and actions. See
 [`docs/results.md`](docs/results.md) and
 [`docs/video_guided_metrics.json`](docs/video_guided_metrics.json).
+Using V2D's reconstructed 3D bowl track for transport also passed **5/5** on
+those states; its [metrics](docs/v2d_object_metrics.json) and
+[derived object positions](data/derived/IMG_7805_v2d_object_track.csv) are
+included. Both variants retain the official grasp and release.
 Unmodified expert actions on those same five initial states also passed 5/5
 in 98.0 mean steps, versus 197.4 for the video-guided replay. This control
 isolates the change to the transport phase; it does not demonstrate an
@@ -62,13 +66,32 @@ frames to 512×288, record bowl-center pixels at timestamps in the CSV format,
 and set `--waypoints`, `--start-s`, and `--end-s`. This baseline needs a visible
 bowl trajectory and an expert demonstration of the same task.
 
+The V2D pipeline also reconstructed the bowl's 3D object track from a 10 fps
+copy of the clip. Its 9–15 second segment is exported as
+[`data/derived/IMG_7805_v2d_object_track.csv`](data/derived/IMG_7805_v2d_object_track.csv).
+To replay its horizontal progress and measured lift with the same expert
+grasp and release, use `--mode v2d` with the command above and a separate
+`--out-dir`. The CSV can be regenerated from a private V2D result bundle:
+
+```bash
+python3 scripts/export_v2d_object_track.py \
+    --result-dir /absolute/path/outputs/clip01/result_gravity_aligned \
+    --fps 10 --out data/derived/IMG_7805_v2d_object_track.csv
+```
+
+The V2D object-guided replay took 190, 206, 202, 190, and 201 control steps.
+The successful episode HDF5 files remain local because they contain full
+camera streams and can be regenerated with the commands above.
+
 ## Experimental full-hand reconstruction
 
 The broader route uses **NVIDIA V2D** to estimate a MANO hand trajectory and
 object pose, maps wrist pose and aperture into LIBERO OSC commands, and filters
-replays by physics success. The adapter and replay code are in this repository;
-this route is still under live GPU validation. Policy fine-tuning has not been
-run.
+replays by physics success. V2D reconstructed 243 object and hand poses for
+this clip, but the first direct hand-to-arm replay failed: the gripper missed
+the bowl. Its wrist-to-tool transform and workspace yaw need calibration.
+The successful object-guided transport described above keeps the expert grasp
+and release. Policy fine-tuning has not been run.
 
 ## Repository layout
 
@@ -88,6 +111,8 @@ scripts/
   merge_lerobot.py      combine matching baseline and video datasets
 configs/target.yaml     per-experiment configuration
 data/derived/IMG_7805_bowl_waypoints.csv  applicant video measurements
+data/derived/IMG_7805_v2d_object_track.csv  reconstructed bowl positions
+data/meshes/approx_black_bowl_14cm.obj  rough proxy for V2D object tracking
 docs/design.md          design decisions & rubric mapping
 docs/results.md         evaluation tables & honest failure log
 ```
@@ -109,20 +134,26 @@ Use absolute paths because the wrapper runs from V2D's `reconstruction/` directo
 
 ```bash
 V2D_ROOT=/path/to/video_to_data ./scripts/run_v2d.sh \
-    --video /absolute/path/clip01.mp4 --object_prompt "black bowl" \
+    --video /absolute/path/clip01_10fps.mp4 --object_prompt "black bowl" \
+    --object_mesh "$PWD/data/meshes/approx_black_bowl_14cm.obj" \
+    --skip_object_scale_estimation \
     --output_dir /absolute/path/outputs/clip01 --reference_frame 70 \
-    --hand_tracking dynhamr --run_droid_slam --run_gravity_alignment
+    --hand_tracking hamer --run_gravity_alignment
 ```
 
 Choose `--reference_frame` from the input clip where the hand is clearly
 visible. Frame 0 of `IMG_7805` had no hand and WiLoR stopped; frame 70 did.
+This uses a simple 14 cm bowl mesh without the handle seen in the real clip;
+the geometry is only an approximation. Set `video_fps: 10` in the experiment
+config for this example. NVIDIA's separate model weights and MANO assets are
+required by the V2D installation.
 
 ### 3. Retarget (CPU only)
 
 ```bash
 python3 -m v2d_to_libero.extract \
-    --result-dir /absolute/path/outputs/clip01/result_slam_gravity_aligned \
-    --mano /path/to/mano/models --fps 30 --summary
+    --result-dir /absolute/path/outputs/clip01/result_gravity_aligned \
+    --mano /path/to/mano/models --fps 10 --summary
 ```
 
 Edit `configs/target.yaml` (result directory, actual FPS, object name, scale,
@@ -167,10 +198,10 @@ LIBERO task and initial states.
 
 | Stage | State |
 |---|---|
-| Video-guided transport + LIBERO export | 5/5 successes on official initial demonstrations |
+| 2D video and V2D object-guided transport + LIBERO export | 5/5 successes each on the same five official initial states |
 | V2D pipeline survey + adapter design | implemented |
-| Full hand retarget adapter (`v2d_to_libero/`) | implemented; awaiting reconstruction validation |
-| Full V2D reconstruction on `IMG_7805` | GPU run in progress |
+| Full hand retarget adapter (`v2d_to_libero/`) | implemented; direct replay failed 0/1 with uncalibrated wrist-to-tool pose |
+| Full V2D reconstruction on `IMG_7805` | 243 object poses and 243 reported hand poses, including filled frames before hand entry |
 | LeRobot converter + merge | implemented; needs real-data verification |
 | Policy fine-tune + evaluation | not run |
 

@@ -7,8 +7,12 @@ venv/
 # data & artifacts
 data/*
 !data/derived/
+!data/meshes/
 data/derived/*
 !data/derived/IMG_7805_bowl_waypoints.csv
+!data/derived/IMG_7805_v2d_object_track.csv
+data/meshes/*
+!data/meshes/approx_black_bowl_14cm.obj
 outputs/
 *.npz
 *.hdf5
@@ -17,6 +21,7 @@ outputs/
 !docs/media/IMG_7805_excerpt.mp4
 *.pkl
 *.obj
+!data/meshes/approx_black_bowl_14cm.obj
 *.ply
 
 # MANO (licensed separately, never committed)

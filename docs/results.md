@@ -11,12 +11,16 @@ their transport phase with video-driven end-effector targets.
 | Evaluation | Attempts | Successes | Mean steps | Criterion |
 |---|---:|---:|---:|---|
 | Video-guided transport, `libero_spatial` bowl-to-plate | 5 | 5 | 197.4 | `env.check_success()` |
+| V2D 3D object-guided transport, same initial states | 5 | 5 | 197.8 | `env.check_success()` |
 | Official expert actions replayed on the same five initial states | 5 | 5 | 98.0 | `env.check_success()` |
 
 The five successful HDF5 episodes have 7-D actions, 8-D robot states, and both
 camera views aligned before each action. Their lengths are 190, 206, 201, 191,
 and 199 steps. [Machine-readable metrics](video_guided_metrics.json) and an
 [example final render](media/video_guided_demo_0_final.png) are included.
+The V2D object-guided episodes have the same schema and lengths 190, 206, 202,
+190, and 201. All five passed the converter's episode validation; see their
+[metrics](v2d_object_metrics.json) and [example final render](media/v2d_object_demo_0_final.png).
 The original full-resolution MOV and licensed MANO models are not committed.
 An authorized [short source-video excerpt](media/IMG_7805_excerpt.mp4) shows
 the recorded task.
@@ -34,9 +38,20 @@ Python 3.10, headless EGL on an NVIDIA L40S. The task is
 
 ## Full video-to-hand retargeting
 
-The V2D/MANO reconstruction and full hand-retargeted LIBERO rollout have not
-yet produced a verified result. No claim about their success rate or policy
-fine-tuning is made here.
+NVIDIA V2D completed reconstruction of the 243-frame, 10 fps sampled clip
+with reference frame 70, HaMeR, an approximate 14 cm bowl mesh, and gravity
+alignment. Its bundle reports 243 right-hand and object poses; early hand
+poses were filled before the hand entered the camera view. The
+object moved about 0.35 m in reconstructed x and about 0.07 m in z over the
+clip. [The 9–15 second object track](../data/derived/IMG_7805_v2d_object_track.csv)
+is shared without the private hand trajectory or licensed MANO weights.
+
+The uncalibrated direct MANO-wrist-to-LIBERO retargeting produced **0/1
+success** over a 484-step replay. [Six simulator frames](media/v2d_direct_replay_fail_montage.png)
+show that the gripper never acquired the bowl. The wrist-to-tool offset and
+workspace yaw were left at identity/default values; the real handled bowl
+also differs from the simulator model. This is a failed experiment, not a
+trained policy evaluation.
 
 ## Failures and corrections
 
@@ -50,3 +65,6 @@ fine-tuning is made here.
   video-guided replay transfers the transport trajectory, not the real grasp
   geometry. V2D currently uses an approximate bowl mesh, which may affect
   object-pose quality.
+- V2D's first reference frame had no visible hand; switching to frame 70
+  allowed hand segmentation. Licensed MANO assets were placed in WiLoR and
+  HaMeR's expected private weights directories on the GPU host.
