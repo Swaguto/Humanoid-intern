@@ -1,0 +1,73 @@
+{
+  "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "mode": "expert",
+  "video_waypoints": null,
+  "video_transport_s": [
+    9.0,
+    15.0
+  ],
+  "attempts": 5,
+  "successes": 5,
+  "episodes": [
+    {
+      "expert_demo": "demo_0",
+      "success": true,
+      "steps": 92,
+      "expert_transport_start": 59,
+      "expert_transport_end": 80,
+      "final_bowl_pos": [
+        0.0698,
+        0.1829,
+        0.9081
+      ]
+    },
+    {
+      "expert_demo": "demo_1",
+      "success": true,
+      "steps": 111,
+      "expert_transport_start": 74,
+      "expert_transport_end": 99,
+      "final_bowl_pos": [
+        0.0677,
+        0.1615,
+        0.9093
+      ]
+    },
+    {
+      "expert_demo": "demo_2",
+      "success": true,
+      "steps": 96,
+      "expert_transport_start": 60,
+      "expert_transport_end": 90,
+      "final_bowl_pos": [
+        0.0649,
+        0.1925,
+        0.9063
+      ]
+    },
+    {
+      "expert_demo": "demo_3",
+      "success": true,
+      "steps": 92,
+      "expert_transport_start": 54,
+      "expert_transport_end": 77,
+      "final_bowl_pos": [
+        0.0907,
+        0.179,
+        0.9072
+      ]
+    },
+    {
+      "expert_demo": "demo_4",
+      "success": true,
+      "steps": 99,
+      "expert_transport_start": 64,
+      "expert_transport_end": 85,
+      "final_bowl_pos": [
+        0.0811,
+        0.1743,
+        0.91
+      ]
+    }
+  ]
+}

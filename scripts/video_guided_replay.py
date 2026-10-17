@@ -79,7 +79,8 @@ def step(env, obs: dict, action: np.ndarray, rec: dict) -> tuple[dict, bool]:
     return obs, bool(done or env.check_success())
 
 
-def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int) -> tuple[dict, dict, dict]:
+def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int,
+             mode: str = "video") -> tuple[dict, dict, dict]:
     actions = np.asarray(demo["actions"])
     start, end = phase_indices(actions)
     pos = np.asarray(demo["obs/ee_pos"])
@@ -89,32 +90,38 @@ def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int) -> tuple[dict, 
                            "state", "images", "wrist_images")}
     env.reset()
     obs = env.set_init_state(np.asarray(demo.attrs["init_state"]))
-    for action in actions[:start]:
-        obs, done = step(env, obs, action, rec)
-        if done:
-            break
-
-    if not done:
-        t0, t1 = points[0, 0], points[-1, 0]
-        x0, x1 = points[0, 1], points[-1, 1]
-        y0 = points[0, 2]
-        for t in np.linspace(t0, t1, round((t1 - t0) * fps) + 1):
-            x = np.interp(t, points[:, 0], points[:, 1])
-            y = np.interp(t, points[:, 0], points[:, 2])
-            progress = float(np.clip((x0 - x) / (x0 - x1), 0.0, 1.0))
-            target = pos[start] * (1 - progress) + pos[end] * progress
-            target[2] = max(pos[start, 2], pos[end, 2]) + 0.0015 * max(0, y0 - y)
-            quat = orient([progress]).as_quat()[0]
-            action = build_env_action(target, quat, obs, 0.0, cfg)
+    if mode == "expert":
+        for action in actions:
+            obs, done = step(env, obs, action, rec)
+            if done:
+                break
+    else:
+        for action in actions[:start]:
             obs, done = step(env, obs, action, rec)
             if done:
                 break
 
-    if not done:
-        for action in actions[end:]:
-            obs, done = step(env, obs, action, rec)
-            if done:
-                break
+        if not done:
+            t0, t1 = points[0, 0], points[-1, 0]
+            x0, x1 = points[0, 1], points[-1, 1]
+            y0 = points[0, 2]
+            for t in np.linspace(t0, t1, round((t1 - t0) * fps) + 1):
+                x = np.interp(t, points[:, 0], points[:, 1])
+                y = np.interp(t, points[:, 0], points[:, 2])
+                progress = float(np.clip((x0 - x) / (x0 - x1), 0.0, 1.0))
+                target = pos[start] * (1 - progress) + pos[end] * progress
+                target[2] = max(pos[start, 2], pos[end, 2]) + 0.0015 * max(0, y0 - y)
+                quat = orient([progress]).as_quat()[0]
+                action = build_env_action(target, quat, obs, 0.0, cfg)
+                obs, done = step(env, obs, action, rec)
+                if done:
+                    break
+
+        if not done:
+            for action in actions[end:]:
+                obs, done = step(env, obs, action, rec)
+                if done:
+                    break
 
     success = bool(env.check_success())
     result = {"expert_demo": demo.name.rsplit("/", 1)[-1],
@@ -124,7 +131,8 @@ def run_demo(env, demo, cfg: dict, points: np.ndarray, fps: int) -> tuple[dict, 
     return rec, result, obs
 
 
-def save_episode(path: Path, rec: dict, result: dict, task: str, fps: int) -> None:
+def save_episode(path: Path, rec: dict, result: dict, task: str, fps: int,
+                 mode: str) -> None:
     with h5py.File(path, "w") as f:
         for key in rec:
             data = np.asarray(rec[key])
@@ -136,7 +144,8 @@ def save_episode(path: Path, rec: dict, result: dict, task: str, fps: int) -> No
                 f.create_dataset(key, data=data)
             else:
                 f.require_group("observations").create_dataset(key, data=data)
-        f.attrs["source"] = "applicant_video_guided_transport"
+        f.attrs["source"] = ("applicant_video_guided_transport" if mode == "video"
+                             else "libero_expert_replay")
         f.attrs["task"] = task
         f.attrs["success"] = result["success"]
         f.attrs["num_samples"] = result["steps"]
@@ -153,6 +162,7 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=5)
     parser.add_argument("--out-dir", default="data/video_guided_replay")
     parser.add_argument("--save-failures", action="store_true")
+    parser.add_argument("--mode", choices=("video", "expert"), default="video")
     args = parser.parse_args()
 
     from libero.libero import benchmark
@@ -178,18 +188,21 @@ def main() -> None:
             for i in range(args.episodes):
                 demo = demos[f"data/demo_{i}"]
                 rec, result, obs = run_demo(env, demo, cfg, points,
-                                            int(cfg["libero"].get("control_freq", 20)))
+                                            int(cfg["libero"].get("control_freq", 20)),
+                                            args.mode)
                 results.append(result)
                 print(result, flush=True)
                 if result["success"] or args.save_failures:
                     tag = "ok" if result["success"] else "fail"
-                    save_episode(out / f"video_guided_demo_{i}_{tag}.hdf5", rec,
-                                 result, task, int(cfg["libero"].get("control_freq", 20)))
+                    save_episode(out / f"{args.mode}_demo_{i}_{tag}.hdf5", rec,
+                                 result, task, int(cfg["libero"].get("control_freq", 20)),
+                                 args.mode)
                 Image.fromarray(np.flip(obs["agentview_image"], axis=0)).save(
-                    out / f"video_guided_demo_{i}_final.png")
+                    out / f"{args.mode}_demo_{i}_final.png")
     finally:
         env.close()
-    summary = {"task": task, "video_waypoints": str(args.waypoints),
+    summary = {"task": task, "mode": args.mode,
+               "video_waypoints": str(args.waypoints) if args.mode == "video" else None,
                "video_transport_s": [args.start_s, args.end_s],
                "attempts": len(results), "successes": sum(r["success"] for r in results),
                "episodes": results}

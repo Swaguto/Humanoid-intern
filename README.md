@@ -24,6 +24,10 @@ On the first five official initial demonstrations of
 files contain simulator images, robot state, and actions. See
 [`docs/results.md`](docs/results.md) and
 [`docs/video_guided_metrics.json`](docs/video_guided_metrics.json).
+Unmodified expert actions on those same five initial states also passed 5/5
+in 98.0 mean steps, versus 197.4 for the video-guided replay. This control
+isolates the change to the transport phase; it does not demonstrate an
+improvement over the expert.
 
 ![LIBERO bowl on plate after video-guided replay](docs/media/video_guided_demo_0_final.png)
 
@@ -48,6 +52,9 @@ python scripts/video_guided_replay.py \
     --expert-hdf5 /absolute/path/to/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5 \
     --episodes 5 --out-dir data/video_guided_replay
 ```
+
+For the same-state control, add `--mode expert` and choose a separate output
+directory. The default `--mode video` uses the applicant video waypoints.
 
 The script writes `metrics.json`, one final render per attempt, and a
 project-specific HDF5 episode for each success. To annotate a new clip, resize
@@ -103,9 +110,12 @@ Use absolute paths because the wrapper runs from V2D's `reconstruction/` directo
 ```bash
 V2D_ROOT=/path/to/video_to_data ./scripts/run_v2d.sh \
     --video /absolute/path/clip01.mp4 --object_prompt "black bowl" \
-    --output_dir /absolute/path/outputs/clip01 --reference_frame 0 \
+    --output_dir /absolute/path/outputs/clip01 --reference_frame 70 \
     --hand_tracking dynhamr --run_droid_slam --run_gravity_alignment
 ```
+
+Choose `--reference_frame` from the input clip where the hand is clearly
+visible. Frame 0 of `IMG_7805` had no hand and WiLoR stopped; frame 70 did.
 
 ### 3. Retarget (CPU only)
 
