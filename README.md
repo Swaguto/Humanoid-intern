@@ -1,3 +1,7 @@
+![Applicant-recorded bowl placement beside a successful LIBERO robot replay](docs/media/recording_and_libero.gif)
+
+*Left: applicant recording at 2× speed. Right: V2D object-guided LIBERO replay using an official grasp and release.*
+
 # Phone Video to LIBERO Bowl Placement
 
 Submission for the Humanoid Internship role!
