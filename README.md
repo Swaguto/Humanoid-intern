@@ -1,6 +1,6 @@
-![Applicant-recorded bowl placement beside a successful LIBERO robot replay](docs/media/recording_and_libero.gif)
+![Recorded bowl-to-plate demonstration beside a LIBERO robot replay](docs/media/recording_and_libero.gif)
 
-*Left: applicant recording at 2× speed. Right: V2D object-guided LIBERO replay using an official grasp and release.*
+*My bowl-to-plate demonstration, shown at 2× speed, beside its V2D object-guided LIBERO replay. The robot uses an official demonstration for grasp and release.*
 
 # Phone Video to LIBERO Bowl Placement
 
@@ -18,8 +18,8 @@ image motion to modulate lift height, and timestamps to set transport speed.
 An official LIBERO demonstration supplies grasp and release. The video replaces
 its transport actions with OSC commands.
 
-[Watch the 19-second excerpt of the applicant's recording](docs/media/IMG_7805_excerpt.mp4).
-The original MOV remains private; this public excerpt has no audio or source
+[Watch a 19-second clip of my bowl-to-plate demonstration](docs/media/IMG_7805_excerpt.mp4).
+The full-resolution recording remains private; this public clip has no audio or source
 metadata.
 
 On the first five official initial demonstrations of
@@ -219,18 +219,17 @@ run the same `pi05_libero` training and evaluation procedure for each. See the
 Do not report a policy result until both runs have been evaluated on the same
 LIBERO task and initial states.
 
-## Status
+## Current status
 
-| Stage | State |
+| Part | What the result means |
 |---|---|
-| 2D video and V2D object-guided transport + LIBERO export | 5/5 successes each on the same five official initial states |
-| V2D pipeline survey + adapter design | implemented |
-| Full hand retarget adapter (`v2d_to_libero/`) | implemented; direct replay failed 0/1 with uncalibrated wrist-to-tool pose |
-| Full V2D reconstruction on `IMG_7805` | 243 object poses and 243 reported hand poses, including filled frames before hand entry |
-| LeRobot converter + merge | implemented; needs real-data verification |
-| Policy fine-tune + evaluation | not run |
+| Video-guided transport | Both the measured 2D waypoints and V2D bowl positions succeeded in 5/5 replays on the same five official initial states. An expert demonstration still supplied grasp and release. |
+| V2D reconstruction | Processed 243 frames, but early hand poses were filled before the hand entered, and the estimated bowl rotation flips near placement. |
+| Direct hand-to-robot replay | Adapter implemented; the first replay missed the bowl (0/1). Wrist-to-tool calibration is still needed. |
+| LeRobot dataset conversion | Converter implemented; a converted dataset still needs end-to-end validation. |
+| Policy training and evaluation | Not run. The replay results do not establish a trained-policy benefit. |
 
-See `docs/results.md` for numbers as they arrive, including what failed.
+See [`docs/results.md`](docs/results.md) for measured outcomes and failures.
 
 ## Requirements & data notes
 
