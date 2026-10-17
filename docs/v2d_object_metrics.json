@@ -2,7 +2,7 @@
   "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
   "mode": "v2d",
   "video_waypoints": null,
-  "v2d_object_track": "data/derived/IMG_7805_v2d_object_track.csv",
+  "v2d_object_track": "data/derived/bowl_to_plate_v2d_object_track.csv",
   "video_transport_s": [
     9.0,
     15.0

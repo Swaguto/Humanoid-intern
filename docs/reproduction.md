@@ -15,14 +15,14 @@ python scripts/video_guided_replay.py \
   --mode video --episodes 5 --out-dir data/video_guided_replay
 ```
 
-Run the other variants with `--mode v2d` or `--mode expert`, choosing a separate `--out-dir` for each. The default 2D waypoints are in [`data/derived/IMG_7805_bowl_waypoints.csv`](../data/derived/IMG_7805_bowl_waypoints.csv); the V2D 3D positions are in [`data/derived/IMG_7805_v2d_object_track.csv`](../data/derived/IMG_7805_v2d_object_track.csv). Both replace only expert transport actions. The script writes `metrics.json`, a final render for every attempt, and a project-specific HDF5 episode for each success.
+Run the other variants with `--mode v2d` or `--mode expert`, choosing a separate `--out-dir` for each. The default 2D waypoints are in [`data/derived/bowl_to_plate_waypoints.csv`](../data/derived/bowl_to_plate_waypoints.csv); the V2D 3D positions are in [`data/derived/bowl_to_plate_v2d_object_track.csv`](../data/derived/bowl_to_plate_v2d_object_track.csv). Both replace only expert transport actions. The script writes `metrics.json`, a final render for every attempt, and a project-specific HDF5 episode for each success.
 
 To annotate another video, resize frames to 512×288, record bowl-center pixels and timestamps in the waypoint CSV format, and set `--waypoints`, `--start-s`, and `--end-s`. This requires a visible bowl trajectory and an expert demonstration of the same task. The 3D variant uses V2D object x displacement and measured lift, normalized over the 9–15 second transport segment. Regenerate its CSV from a local V2D bundle with:
 
 ```bash
 python3 scripts/export_v2d_object_track.py \
   --result-dir /absolute/path/outputs/clip01/result_gravity_aligned \
-  --fps 10 --out data/derived/IMG_7805_v2d_object_track.csv
+  --fps 10 --out data/derived/bowl_to_plate_v2d_object_track.csv
 ```
 
 The five video-guided replay lengths were 190, 206, 201, 191, and 199 steps; the V2D object-guided lengths were 190, 206, 202, 190, and 201. The successful HDF5 files stay local because they contain full simulator camera streams. See [results and machine-readable metrics](results.md).
@@ -104,4 +104,4 @@ The converter downsamples 20 Hz replay to 10 Hz and exports both camera views, t
 - `data/meshes/`: approximate tracking mesh.
 - `docs/`: [results](results.md), [design choices](design.md), and public media.
 
-The original MOV, full V2D bundle, licensed MANO models, and successful HDF5 camera streams are not committed. The [authorized source excerpt](media/IMG_7805_excerpt.mp4), derived positions, metrics, and simulator renders are public.
+The original MOV, full V2D bundle, licensed MANO models, and successful HDF5 camera streams are not committed. The [authorized source excerpt](media/bowl_to_plate_demonstration_excerpt.mp4), derived positions, metrics, and simulator renders are public.

@@ -2,8 +2,8 @@
 
 ## Video-guided LIBERO replay
 
-`IMG_7805.MOV` is an applicant-recorded bowl-to-plate demonstration. Thirteen
-bowl-center waypoints were read from frames resized to 512×288; the arm hides the
+`bowl_to_plate_demonstration.mov` is my recorded bowl-to-plate demonstration.
+Thirteen bowl-center waypoints were read from frames resized to 512×288; the arm hides the
 bowl in some frames, so this is a sparse inspected track. The replay uses the
 first five official LIBERO demonstrations for grasp and release and replaces
 their transport phase with video-driven end-effector targets.
@@ -22,7 +22,7 @@ The V2D object-guided episodes have the same schema and lengths 190, 206, 202,
 190, and 201. All five passed the converter's episode validation; see their
 [metrics](v2d_object_metrics.json) and [example final render](media/v2d_object_demo_0_final.png).
 The original full-resolution MOV and licensed MANO models are not committed.
-An authorized [short source-video excerpt](media/IMG_7805_excerpt.mp4) shows
+An authorized [short source-video excerpt](media/bowl_to_plate_demonstration_excerpt.mp4) shows
 the recorded task.
 
 The [expert replay metrics](expert_baseline_metrics.json) establish a control:
@@ -43,7 +43,7 @@ with reference frame 70, HaMeR, an approximate 14 cm bowl mesh, and gravity
 alignment. Its bundle reports 243 right-hand and object poses; early hand
 poses were filled before the hand entered the camera view. The
 object moved about 0.35 m in reconstructed x and about 0.07 m in z over the
-clip. [The 9–15 second object track](../data/derived/IMG_7805_v2d_object_track.csv)
+clip. [The 9–15 second object track](../data/derived/bowl_to_plate_v2d_object_track.csv)
 is shared without the private hand trajectory or licensed MANO weights.
 
 The reconstructed bowl orientation is wrong near placement. The saved mesh's

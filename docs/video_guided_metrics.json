@@ -1,6 +1,6 @@
 {
   "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
-  "video_waypoints": "data/derived/IMG_7805_bowl_waypoints.csv",
+  "video_waypoints": "data/derived/bowl_to_plate_waypoints.csv",
   "video_transport_s": [
     9.0,
     15.0
