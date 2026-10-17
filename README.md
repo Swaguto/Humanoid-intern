@@ -44,6 +44,27 @@ a policy trained from video or a complete video-only grasp. The full
 hand-and-object reconstruction route through NVIDIA V2D is a separate experiment
 below.
 
+## Example outputs
+
+![Diagram of the tested video-to-LIBERO pipeline](docs/media/pipeline.svg)
+
+![Recorded frames beside V2D's reconstructed hand and bowl poses](docs/media/v2d_reconstruction_stills.png)
+
+*V2D reconstruction projected onto my video: cyan is the approximate bowl mesh; magenta is the MANO hand pose. The bowl proxy drifts near placement.*
+
+| Video-guided LIBERO result | V2D object-guided LIBERO result |
+|:---:|:---:|
+| ![Video-guided bowl placement](docs/media/video_guided_demo_0_final.png) | ![V2D object-guided bowl placement](docs/media/v2d_object_demo_0_final.png) |
+
+The [2D replay metrics](docs/video_guided_metrics.json), [V2D object replay metrics](docs/v2d_object_metrics.json), and [V2D-derived bowl positions](data/derived/IMG_7805_v2d_object_track.csv) are included. Successful runs also write HDF5 episodes with both simulator camera views, robot state, and actions; those larger files remain local.
+
+## Design choices and lessons
+
+- **Why this task:** My bowl-to-plate recording matches a LIBERO task with a physics success check. I inspected sparse 2D bowl waypoints because my hand occludes the bowl in some frames, then tested V2D's 3D bowl track as a second transport signal.
+- **Why use an expert grasp and release:** My real bowl has a handle; LIBERO's bowl does not. Keeping the task-matched expert grasp and release isolates the contribution of my video's transport motion. [More design detail](docs/design.md).
+- **What worked:** Both video-driven transport variants passed 5/5 replays on the same five official initial states. The unmodified expert also passed 5/5, so this is not evidence of better performance or generalization.
+- **What did not:** Direct V2D hand-to-robot replay failed 0/1 because the gripper missed the bowl. The bowl proxy drifts near placement; wrist-to-tool pose and workspace yaw need calibration. [Failure frames](docs/media/v2d_direct_replay_fail_montage.png) and [full results](docs/results.md). No policy fine-tuning or evaluation has been run.
+
 ## Reproduction
 
 Install [LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO) and its
