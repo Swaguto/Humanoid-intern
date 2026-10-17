@@ -57,6 +57,14 @@ occlusion and the approximate handle-free mesh are plausible contributors.
 The successful V2D object-guided transport exports only the pose translation,
 not this incorrect rotation.
 
+For the [upright-constrained visualization](media/v2d_upright_constrained_stills.png),
+[`constrain_v2d_bowl_upright.py`](../scripts/constrain_v2d_bowl_upright.py)
+replaces the proxy's rotation with a fixed gravity-up orientation in a separate
+bundle. It preserves V2D's translations and hand poses. The
+[original projection](media/v2d_reconstruction_stills.png) remains available
+to show the actual orientation failure. This display correction does not
+alter either LIBERO replay or its reported success rate.
+
 The uncalibrated direct MANO-wrist-to-LIBERO retargeting produced **0/1
 success** over a 484-step replay. [Six simulator frames](media/v2d_direct_replay_fail_montage.png)
 show that the gripper never acquired the bowl. The wrist-to-tool offset and

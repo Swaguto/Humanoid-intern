@@ -50,6 +50,20 @@ V2D_ROOT=/path/to/video_to_data ./scripts/run_v2d.sh \
 
 Choose a reference frame with a visible hand. Frame 0 of this clip had no hand; frame 70 did. The approximate 14 cm mesh omits the real bowl's handle, so pose quality has a known limit. Set `video_fps: 10` in the experiment config for this input.
 
+If the reconstructed bowl flips upside down, create a separate upright proxy
+bundle for visualization:
+
+```bash
+python3 scripts/constrain_v2d_bowl_upright.py \
+  --result-dir /absolute/path/outputs/clip01/result_gravity_aligned \
+  --out-dir /absolute/path/outputs/clip01/result_gravity_aligned_upright
+```
+
+This assumes a gravity-aligned +Z-up world and a bowl mesh that opens along
+local +Z. It replaces the proxy's rotation with a fixed world-upright rotation
+while preserving its measured translation and hand poses. Keep the original
+bundle for evaluating V2D's raw pose quality; this is not recovered rotation.
+
 ### 3. Retarget on CPU
 
 ```bash
