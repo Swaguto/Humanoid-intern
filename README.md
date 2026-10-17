@@ -66,7 +66,9 @@ hand-and-object reconstruction route through NVIDIA V2D is documented in the
 
 ## Example outputs
 
-![Diagram of the tested video-to-LIBERO pipeline](docs/media/pipeline.svg)
+![Excalidraw diagram of the tested video-to-LIBERO pipeline](docs/media/pipeline_excalidraw.png)
+
+[Editable Excalidraw source](docs/media/pipeline.excalidraw).
 
 ![Recorded frames beside the gravity-upright bowl proxy and V2D hand pose](docs/media/v2d_upright_constrained_stills.png)
 
