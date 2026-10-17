@@ -46,6 +46,17 @@ object moved about 0.35 m in reconstructed x and about 0.07 m in z over the
 clip. [The 9–15 second object track](../data/derived/IMG_7805_v2d_object_track.csv)
 is shared without the private hand trajectory or licensed MANO weights.
 
+The reconstructed bowl orientation is wrong near placement. The saved mesh's
+local +Z axis points toward its open rim, but its estimated world-Z component
+changes from +0.92 at frame 120 (12.0 s) to -0.76 at frame 130 (13.0 s), and
+remains about -0.96 at frame 150 (15.0 s). The physical bowl stays upright.
+The saved object-to-camera pose, camera-to-world pose, and object-to-world pose
+are mutually consistent, so this is a pose-estimation failure rather than an
+overlay coordinate error. The cause cannot be isolated from this run; hand
+occlusion and the approximate handle-free mesh are plausible contributors.
+The successful V2D object-guided transport exports only the pose translation,
+not this incorrect rotation.
+
 The uncalibrated direct MANO-wrist-to-LIBERO retargeting produced **0/1
 success** over a 484-step replay. [Six simulator frames](media/v2d_direct_replay_fail_montage.png)
 show that the gripper never acquired the bowl. The wrist-to-tool offset and
