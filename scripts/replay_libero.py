@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from v2d_to_libero.calibrate import align_workspace_to_object, default_workspace, resolve_scale
 from v2d_to_libero.extract import load_hand_track, load_object_track
-from v2d_to_libero.libero_actions import build_env_action
+from v2d_to_libero.libero_actions import build_env_action, gripper_to_env
 from v2d_to_libero.retarget import retarget, summarize_cmd
 
 
@@ -73,11 +73,19 @@ def video_object_position(object_track) -> np.ndarray:
     return np.median(object_track.pose_T_world[first, :3, 3], axis=0)
 
 
-def reset_episode(env, init_state, seed: int):
+def reset_episode(env, init_state, seed: int, cfg: dict):
     env.seed(seed)
     obs = env.reset()
     if init_state is not None:
         obs = env.set_init_state(init_state)
+    # LIBERO's stored object poses can start above their resting height. Let
+    # physics settle before reading the object's position for video alignment.
+    action = np.zeros(7, dtype=np.float64)
+    action[-1] = gripper_to_env(
+        1.0, cfg.get("libero", {}).get("gripper_convention", "neg1_open")
+    )
+    for _ in range(int(cfg.get("libero", {}).get("settle_steps", 30))):
+        obs, _, _, _ = env.step(action)
     return obs
 
 
@@ -158,7 +166,7 @@ def main() -> None:
     try:
         for ep in range(args.episodes):
             init_state = init_states[ep % len(init_states)] if len(init_states) else None
-            obs = reset_episode(env, init_state, int(cfg["libero"].get("seed", 0)) + ep)
+            obs = reset_episode(env, init_state, int(cfg["libero"].get("seed", 0)) + ep, cfg)
             workspace = default_workspace(cfg, scale)
             align_workspace_to_object(workspace, video_object_position(object_track),
                                       sim_object_position(env, cfg))

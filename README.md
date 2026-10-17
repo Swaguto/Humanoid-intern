@@ -1,70 +1,67 @@
-# From My Hand to a Robot Hand: Turning Phone Video into Libero Demonstrations
+# Phone Video to LIBERO Bowl Placement
 
-Submission for the [Humanoid Internship Challenge](https://jobs.ashbyhq.com/humanoid/e1a2a9de-ad23-4632-9d93-ee50fd41a221)
-— *record a phone video of a manipulation task and use it to drive a simulated
-manipulator, with your own data playing a real role.*
+Submission for the [Humanoid Internship Challenge](https://jobs.ashbyhq.com/humanoid/e1a2a9de-ad23-4632-9d93-ee50fd41a221).
 
-## TL;DR
+## Working result
 
-Instead of annotating demos by hand or treating real video as "just" domain
-randomization, we run the video through **V2D** (NVIDIA's video-to-3D-reconstruction
-pipeline), recover the **MANO hand trajectory + aperture**, retarget it into a
-**Libero end-effector + gripper action sequence**, replay it in the simulator to
-produce **in-domain training demonstrations**, and fine-tune a policy on
-*original Libero demos + our video-derived demos*.
+The applicant recorded `IMG_7805.MOV`, showing a black bowl moved onto a plate.
+We measured bowl centers at selected timestamps (the hand occludes some frames)
+and saved those measurements in
+[`data/derived/IMG_7805_bowl_waypoints.csv`](data/derived/IMG_7805_bowl_waypoints.csv).
+[`scripts/video_guided_replay.py`](scripts/video_guided_replay.py) uses the
+horizontal displacement to control the robot's transport progress, vertical
+image motion to modulate lift height, and timestamps to set transport speed.
+An official LIBERO demonstration supplies grasp and release. The video replaces
+its transport actions with OSC commands.
 
+[Watch the 19-second excerpt of the applicant's recording](docs/media/IMG_7805_excerpt.mp4).
+The original MOV remains private; this public excerpt has no audio or source
+metadata.
+
+On the first five official initial demonstrations of
+`libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate`,
+**5/5 video-guided rollouts passed `env.check_success()`**. The resulting HDF5
+files contain simulator images, robot state, and actions. See
+[`docs/results.md`](docs/results.md) and
+[`docs/video_guided_metrics.json`](docs/video_guided_metrics.json).
+
+![LIBERO bowl on plate after video-guided replay](docs/media/video_guided_demo_0_final.png)
+
+This demonstrates video-driven transport in the simulator. It does not establish
+a policy trained from video or a complete video-only grasp. The full
+hand-and-object reconstruction route through NVIDIA V2D is a separate experiment
+below.
+
+## Reproduce the tested video-guided replay
+
+Install [LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO) and its
+requirements, then download its `libero_spatial` demonstration dataset. The
+script reads the single task file
+`pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5`.
+LIBERO's source checkout needs to be on `PYTHONPATH`; on a Linux headless host:
+
+```bash
+export PYTHONPATH=/absolute/path/to/LIBERO:$PWD
+export MUJOCO_GL=egl
+python scripts/video_guided_replay.py \
+    --config configs/target.yaml \
+    --expert-hdf5 /absolute/path/to/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5 \
+    --episodes 5 --out-dir data/video_guided_replay
 ```
-your phone video
-      │
-      ▼
-┌──────────────┐   wrist SE3 (world), per-frame aperture, object pose
-│  V2D ego-e2e │──────────────────────────────────────────────┐
-│ (ViPE+DynHaMR│                                              │
-│  MANO, depth)│                                              ▼
-└──────────────┘                                  ┌──────────────────────┐
-                                                  │ v2d_to_libero (new)  │
-                                                  │ 1. scale anchor      │
-                                                  │ 2. frame → Libero    │
-                                                  │ 3. wrist → EEF pose  │
-                                                  │ 4. aperture → grip   │
-                                                  │ 5. absolute → δ OSC  │
-                                                  └──────────┬───────────┘
-                                                             ▼
-                                                  ┌──────────────────────┐
-                                                  │ Libero sim replay    │
-                                                  │ (OSC controller,     │
-                                                  │  grasp-success       │
-                                                  │  filter)             │
-                                                  └──────────┬───────────┘
-                                                             ▼
-                                       in-domain (image, action) demos
-                                                             │
-                     Libero official demos ──────────────► mix
-                                                             ▼
-                                            fine-tune π0 / OpenVLA-OFT
-                                                             ▼
-                                               evaluate on LIBERO suites
-```
 
-## Why this is creative (design choices)
+The script writes `metrics.json`, one final render per attempt, and a
+project-specific HDF5 episode for each success. To annotate a new clip, resize
+frames to 512×288, record bowl-center pixels at timestamps in the CSV format,
+and set `--waypoints`, `--start-s`, and `--end-s`. This baseline needs a visible
+bowl trajectory and an expert demonstration of the same task.
 
-1. **Real human motion, not scripted trajectories.** The demo comes from *my*
-   hand recorded on a phone — idiosyncratic approach paths, grasp styles, and
-   timing that no scripted trajectory generator produces.
-2. **V2D does the hard perception for us.** Monocular MANO reconstruction
-   (ViPE + Dyn-HaMR), gravity-aligned world frame, object pose tracking — we
-   consume its `result.npz` contract rather than reinventing hand tracking.
-3. **The replay trick closes the visual gap.** We never feed *real phone frames*
-   into the policy. The recovered motion is re-executed in the simulator, so
-   the resulting observations are pixel-domain Libero renders — zero
-   visual-domain shift in the training data, all the diversity from real human
-   kinematics. *(This is the key insight: the value of your video is in the
-   **motion distribution**, not the pixels.)*
-4. **Aperture is the gripper signal.** Thumb–index fingertip distance from MANO
-   FK gives a continuous grasp signal — no grasp labels, no touch sensors.
-5. **Physically grounded filtering.** Retargeted trajectories only become
-   training demos if the simulator's physics actually succeeds at the task —
-   the sim is the labeler.
+## Experimental full-hand reconstruction
+
+The broader route uses **NVIDIA V2D** to estimate a MANO hand trajectory and
+object pose, maps wrist pose and aperture into LIBERO OSC commands, and filters
+replays by physics success. The adapter and replay code are in this repository;
+this route is still under live GPU validation. Policy fine-tuning has not been
+run.
 
 ## Repository layout
 
@@ -76,17 +73,19 @@ v2d_to_libero/          the retarget adapter (the new contribution)
   retarget.py           wrist → EEF pose, aperture → gripper, resample @20 Hz
   libero_actions.py     absolute pose → Libero OSC delta actions
 scripts/
+  video_guided_replay.py  measured bowl motion + expert grasp/release → demos
   run_v2d.sh            wrapper for V2D's run_ego_reconstruction.py
   replay_libero.py      replay retargeted traj, filter success, save demos
   check_conventions.py  verify gripper/rotation conventions before replay
   convert_to_lerobot.py convert successful replay HDF5 to LeRobot
   merge_lerobot.py      combine matching baseline and video datasets
 configs/target.yaml     per-experiment configuration
+data/derived/IMG_7805_bowl_waypoints.csv  applicant video measurements
 docs/design.md          design decisions & rubric mapping
 docs/results.md         evaluation tables & honest failure log
 ```
 
-## How to run
+## How to run the experimental V2D route
 
 ### 1. Record
 
@@ -158,12 +157,12 @@ LIBERO task and initial states.
 
 | Stage | State |
 |---|---|
-| V2D pipeline survey + adapter design | done |
-| Retarget adapter (`v2d_to_libero/`) | implemented |
-| LIBERO replay + demo export | code fixed and unit checked; needs live verification |
-| GPU run of V2D on my video | blocked on compute (docker/NVIDIA runtime) |
+| Video-guided transport + LIBERO export | 5/5 successes on official initial demonstrations |
+| V2D pipeline survey + adapter design | implemented |
+| Full hand retarget adapter (`v2d_to_libero/`) | implemented; awaiting reconstruction validation |
+| Full V2D reconstruction on `IMG_7805` | GPU run in progress |
 | LeRobot converter + merge | implemented; needs real-data verification |
-| Fine-tune + eval | pending video-derived successful episodes and GPU run |
+| Policy fine-tune + evaluation | not run |
 
 See `docs/results.md` for numbers as they arrive, including what failed.
 
@@ -172,8 +171,9 @@ See `docs/results.md` for numbers as they arrive, including what failed.
 - **MANO models are licensed separately** — put `MANO_RIGHT.pkl` / `MANO_LEFT.pkl`
   in a local dir (e.g. `~/Downloads/mano_v1_2/models/`) and point
   `mano_model_dir` at it. They are never committed.
-- `data/`, `*.npz`, `*.hdf5`, `*.mp4` are gitignored; example outputs get
-  curated into releases instead.
+- The full-resolution source video, MANO weights, and HDF5 outputs are not
+  committed. The authorized excerpt, derived waypoint CSV, metrics, and a
+  final simulator render are committed.
 
 ## Acknowledgments
 

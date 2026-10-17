@@ -1,94 +1,61 @@
 # Design choices
 
-Mapped to the rubric's questions: *creativity*, *does your data play a real
-role*, *performance of the policy / quality of world-model predictions*.
+The [Humanoid internship challenge](https://jobs.ashbyhq.com/humanoid/e1a2a9de-ad23-4632-9d93-ee50fd41a221)
+asks for personally collected data to drive a robotic manipulator in simulation.
+The applicant's video shows a black bowl lifted and placed on a plate, matching
+a LIBERO spatial task. We tested a narrow video-guided replay and built a more
+ambitious full-hand retargeter.
 
-## 1. The central bet: motion in, pixels stay synthetic
+## Tested route: video-guided transport
 
-Two naive ways to use a phone video for Libero:
+The personally recorded clip supplies measured bowl centers and timing. During
+the transport phase, the controller converts the bowl's horizontal image motion
+into progress from the simulator bowl toward the plate. Upward image motion
+raises the end-effector slightly, and the time spacing sets the transport
+speed. LIBERO's OSC controller executes these targets, and physics determines
+whether the bowl stays grasped and reaches the plate.
 
-- **Feed real frames to the policy** — huge visual domain gap (phone camera vs
-  libero renderer); a fine-tuned VLA will latch onto backgrounds, lighting,
-  camera intrinsics. Fails in sim eval.
-- **Use only the task language** — your data plays no real role; the rubric
-  explicitly checks this.
+A task-matched official demonstration provides the grasp and release. This
+solves the mismatch between the real handled bowl and LIBERO's handle-free bowl,
+but it limits the claim: the real video controls transport, not the entire
+manipulation. The sparse waypoints were inspected manually because the hand
+occludes the bowl in several frames. The result is reproducible with the
+committed CSV and script; see [results](results.md).
 
-We take the third path: **the video contributes the motion distribution, the
-simulator contributes the pixels.** V2D recovers *what the hand did* (wrist SE3
-trajectory, aperture timing); we replay it through Libero's physics to obtain
-observations that are rendered in-domain. The result: demos that carry the
-idiosyncrasies of a real human grasp (approach angle, hesitation, closure
-timing) without a single real pixel entering the training set.
+The output HDF5 contains simulator camera images and actions from the executed
+rollout. It is suitable as a candidate demonstration for later training, but
+we have not trained or evaluated a learned policy with it. The five successful
+replays use official initial states for the same task and therefore do not test
+out-of-distribution generalization.
 
-## 2. Why V2D (vs. off-the-shelf hand tracking)
+## Experimental route: full-hand retargeting
 
-- **MANO + world frame in one pipeline**: ViPE camera pose + Dyn-HaMR hand
-  reconstruction gives wrist trajectories in a gravity-aligned world (GeoCalib),
-  which is exactly the input a robot retargeter needs.
-- **Object tracking too**: FoundationPose gives the object pose for the same
-  frames — used later for grasp-point verification and for placing the object
-  in the Libero scene consistently with where the hand reached.
-- **Reproducible contract**: `result.npz` is a documented, versioned bundle —
-  the adapter (`extract.py`) is a pure consumer; nothing about our code depends
-  on V2D internals.
+The `v2d_to_libero` package consumes NVIDIA V2D's `result.npz`: MANO wrist pose,
+thumb-index aperture, and object pose. It aligns the reconstructed object to
+the simulator object, converts wrist pose to end-effector targets, resamples to
+LIBERO's control frequency, and translates target poses into OSC delta actions.
+Only a rollout passing `env.check_success()` is saved as a training episode.
 
-## 3. The scale problem
+This route has several unresolved calibration risks:
 
-Monocular depth (ViPE/MoGe) is not guaranteed metric. Options we rejected:
+- Monocular reconstruction may not have reliable metric scale. The default
+  scale is explicit and must be checked against the recorded object.
+- A single object point aligns translation but does not determine world yaw or
+  wrist-to-tool offset.
+- Real hand aperture is only a proxy for a two-finger robot gripper command.
+- The video bowl's handle has no simulator counterpart; a faithful wrist path
+  may produce the wrong contact geometry.
+- Hand occlusion can shorten the valid trajectory. Interpolating across a long
+  gap could invent an unsafe motion, so the extractor uses the longest valid
+  run.
 
-| anchor | problem |
-|---|---|
-| known object width via FoundationPose mesh | SAM3D meshes are not metric; scale entangled with pose scale |
-| hand size from MANO betas | betas fitted in the same non-metric world — circular |
-| depth reading at object | monocular depth scale drifts frame to frame |
+The live V2D run uses an approximate metric bowl mesh. Object-pose and replay
+quality must be inspected before making any claim about this route. A failed
+replay is a calibration result, not a training demonstration.
 
-The default is an explicit world-unit-to-metre scale, initially 1.0. This must
-be calibrated against the scene. The optional `grasp_aperture` method uses a
-measured object width and a manually chosen holding window, but is experimental:
-MANO hand scale can differ from the reconstructed camera/world scale. It is not
-a reliable automatic world-scale calibration. Failed replays expose bad scale,
-but filtering alone cannot recover a valid trajectory.
+## What would establish a policy benefit
 
-## 4. Gripper signal from fingertip distance
-
-No grasp labels, no force data: thumb–index vertex distance (MANO tip verts
-from V2D's own track3 code) normalized to [0,1]. Continuous during the
-trajectory, thresholded implicitly by the sim (physics decides). Invalid frames
-are forward-filled; only the longest valid run is replayed (interpolating
-through occlusion would invent motion).
-
-## 5. Replay as physics-based filtering
-
-The retargeted trajectory is executed through Libero's OSC controller. Only
-rollouts where `env.check_success()` passes become training demos. Failures are
-saved only with `--save-rejects` for inspection. A zero-success run means there
-is no video-derived training data; the filter cannot repair calibration or
-contact errors. Failed-rollout rate is reported in `results.md`.
-
-## 6. Policy choice
-
-π0/π0.5 via **openpi** — LIBERO is their canonical fine-tune example
-(`pi05_libero` checkpoint, 96.85% on the suite), open weights, real
-infrastructure for mixing datasets. **OpenVLA-OFT** as the fast alternative
-(97.1%, ~26× inference speedup — also speaks to the rubric's
-inference-optimisation hint). Octo deliberately not used: 75.1% leaves no head
-room to measure our data's contribution.
-
-Baselines to report:
-
-1. official Libero demos only (baseline),
-2. official + our video-derived demos,
-3. (ablation) our demos without the success filter.
-
-## 7. What we expect to struggle with (honest list, to be filled with numbers)
-
-- **Workspace alignment**: guessing the V2D→Libero origin/yaw by hand; a wrong
-  yaw puts the grasp centimetres off the object. Mitigation: print wrist range
-  vs scene object pose, tune `workspace.*`, and iterate with `--save-rejects`.
-- **Occlusion gaps**: hand disappears behind the object → longest-run
-  truncation shortens demos.
-- **Aperture proxy**: thumb–index distance ≠ contact; pinch grasps on thin
-  objects may close "too early" in the recorded motion — physics filter
-  catches it, but yield drops.
-- **Video deadline**: submission window closed before compute was available —
-  artifacts will be attached post-hoc if the evaluation allows it.
+Train the same policy architecture with official LIBERO data alone and with
+additional successful video-derived episodes. Evaluate both on the same held
+out initial states and report task success with uncertainty. This comparison
+has not been run; replay success alone does not imply a policy improvement.

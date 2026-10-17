@@ -53,6 +53,7 @@ libero:
   camera: agentview
   camera_size: 256
   control_freq: 20
+  settle_steps: 30              # let official init state reach the table before calibration
   seed: 0
   gripper_convention: neg1_open  # VERIFY with scripts/check_conventions.py
 

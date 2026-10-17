@@ -5,12 +5,16 @@ venv/
 .DS_Store
 
 # data & artifacts
-data/
+data/*
+!data/derived/
+data/derived/*
+!data/derived/IMG_7805_bowl_waypoints.csv
 outputs/
 *.npz
 *.hdf5
 *.h5
 *.mp4
+!docs/media/IMG_7805_excerpt.mp4
 *.pkl
 *.obj
 *.ply
