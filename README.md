@@ -66,9 +66,9 @@ The [2D replay metrics](docs/video_guided_metrics.json), [V2D object replay metr
 ## Design choices and lessons
 
 - **Why this task:** My bowl-to-plate recording matches a LIBERO task with a physics success check. I inspected sparse 2D bowl waypoints because my hand occludes the bowl in some frames, then tested V2D's 3D bowl track as a second transport signal.
-- **Why use an expert grasp and release:** My real bowl has a handle; LIBERO's bowl does not. Keeping the task-matched expert grasp and release isolates the contribution of my video's transport motion. [More design detail](docs/design.md).
+- **Why use an expert grasp and release:** Keeping the task-matched expert grasp and release isolates the contribution of my video's transport motion. [More design detail](docs/design.md).
 - **What worked:** Both video-driven transport variants passed 5/5 replays on the same five official initial states. The unmodified expert also passed 5/5, so this is not evidence of better performance or generalization.
-- **What did not:** Direct V2D hand-to-robot replay failed 0/1 because the gripper missed the bowl. V2D's estimated bowl orientation flips near placement, and wrist-to-tool pose and workspace yaw need calibration. The successful object-guided transport uses bowl *position*, not that faulty rotation. The display correction is reproducible with [`scripts/constrain_v2d_bowl_upright.py`](scripts/constrain_v2d_bowl_upright.py); it does not change the replay metrics. [Failure frames](docs/media/v2d_direct_replay_fail_montage.png) and [full results](docs/results.md). No policy fine-tuning or evaluation has been run.
+- **What did not:** Direct V2D hand-to-robot replay failed once because the gripper missed the bowl. V2D's estimated bowl orientation flips near placement, and wrist-to-tool pose and workspace yaw need calibration. The successful object-guided transport uses bowl *position*, not that faulty rotation. The display correction is reproducible with [`scripts/constrain_v2d_bowl_upright.py`](scripts/constrain_v2d_bowl_upright.py); it does not change the replay metrics. [Failure frames](docs/media/v2d_direct_replay_fail_montage.png) and [full results](docs/results.md). No policy fine-tuning or evaluation has been run.
 
 ## Reproduction
 
